@@ -12,6 +12,48 @@
 
 namespace lvx {
 
+  std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const simulation_cell& sim_cell) {
+    std::stringstream ss;
+    // ss << std::fixed;
+    
+    ss << "BCC Xx \n";
+    ss << lattice_constant.value() << "\n";
+    ss << a1 << "\n";
+    ss << a2 << "\n";
+    ss << a3 << "\n";
+
+    for (int i = 0; i < sim_cell.vasp_indices.size(); ++i) {
+      if (sim_cell.vasp_indices[i] > 0) {
+        ss << sim_cell.vasp_potential_symbols[i] << " ";
+      }
+    }
+    ss << "\n";
+    for (int i = 0; i < sim_cell.vasp_indices.size(); ++i) {
+      if (sim_cell.vasp_indices[i] > 0) {
+        ss << sim_cell.vasp_indices[i] << " ";
+      }
+    }
+    ss << "\n";
+    
+    // ss << std::distance(first_atom, last_atom) << "\n";
+    // ss << ((typeid(first_atom->getPos()) == typeid(vec3_angstrom)) ? "Cartesian\n" : "Direct\n");
+    ss << ((typeid(sim_cell.particles[0].getPos()) == typeid(vec3_angstrom)) ? "Cartesian\n" : "Direct\n");
+
+    for (const auto& p : sim_cell.particles) {
+      ss << p.getPos() << "\n";
+    }
+    ss << "\n";
+    for (const auto& p : sim_cell.particles) {
+      ss << p.getVel() << "\n";
+    }
+    
+    return ss.str();
+  }
+
   std::ostream& operator<<(std::ostream &strm, const Vector3& a) {
     return strm << std::setprecision(8) << a.x << " " << a.y << " " << a.z;
   }

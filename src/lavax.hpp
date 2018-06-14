@@ -102,6 +102,12 @@ BOOST_UNITS_STATIC_CONSTANT(dimensionless, dimless_unit);
 
 namespace lvx {
 
+  // using namespace arma;
+  // using namespace units;
+  using namespace boost::units;
+  // using namespace boost::units::si;
+  // boost::units::si::constants::codata::m_u
+
   // ------------------------------------------------------------
   class Vector3 {
   private:
@@ -166,12 +172,7 @@ namespace lvx {
     Vector3 getVelocity() const { return vel; }
   
   };
-  
-  // using namespace arma;
-  // using namespace units;
-  using namespace boost::units;
-  // using namespace boost::units::si;
-  // boost::units::si::constants::codata::m_u
+
   
   
   using femtosecond_base_unit = scaled_base_unit<si::second_base_unit,
@@ -249,7 +250,17 @@ namespace lvx {
 
   };
 
+  class simulation_cell {
+  public:
+    std::vector<std::string> vasp_potential_symbols;
+    std::vector<std::string> vasp_potential_file;
+    std::vector<int>         vasp_indices;
+    std::vector<int>         lammps_indices;
+    std::vector<Particle_v2> particles;
+  };
+
   // ------------------------------------------------------------
+  class Vector3;
   Vector3 read_vector3(std::istream&);
   Vector3 read_vector3(std::string&);
   vec3_angstrom read_vec3_angstrom(std::istream& strm);
@@ -465,12 +476,18 @@ namespace lvx {
     return ss.str();
   }
 
+  std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const simulation_cell& sim_cell);
+  
   // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
   //                      const vec3_dimless& dir,
   //                      const quantity<electron_volt_unit>& energy) {
 
   // }
-  
+
   class Angstrom {
     double raw_length;
   public:

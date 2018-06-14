@@ -1,0 +1,32 @@
+# ---------- Initialize Simulation ---------------------
+units real
+dimension 3 
+boundary p p p 
+atom_style atomic 
+atom_modify map array
+read_data W_crystal.dat
+
+# ---------- Define Interatomic Potential --------------------- 
+pair_style eam/fs
+pair_coeff * * W_BN.eam.fs W
+neighbor 2.0 bin 
+neigh_modify delay 10 check yes
+
+# ---------- Define Settings ---------------------
+compute         neigh        all property/local patom1 patom2
+compute         distance     all pair/local dist eng
+
+# ---------- Dump Options --------------------- 
+dump 4 all local 1 neigh.dump c_distance[1] c_neigh[1] c_neigh[2] 
+dump_modify 4 sort 1
+
+fix 1 all nve
+
+# ---------- Thermo ----------
+thermo 		1
+thermo_style	custom step cpuremain pe temp
+
+reset_timestep 0
+timestep 1.0
+
+run 13
