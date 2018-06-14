@@ -8,6 +8,7 @@ pkgdata_DATA = lavax.conf predictor.in
 
 AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
 #AM_LDFLAGS = -lboost_system -lboost_filesystem
+AM_LDFLAGS=-L/home/mcg04/local/lib
 
 bin_PROGRAMS = unit_test lavax test2
 unit_test_SOURCES = unit_test.cpp lavax.cpp init_check.cpp

@@ -91,7 +91,7 @@ namespace lvx {
     // file.close();
     
     file << ss.rdbuf();
-    file.close()
+    file.close();
   }
   
   
