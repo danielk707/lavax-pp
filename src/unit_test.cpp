@@ -36,6 +36,9 @@ int main(int argc, char *argv[])
 
   std::cout << "-------------------- init_check1 --------------------" << "\n";
   init_check1();
+
+  std::cout << "-------------------- init_check2 --------------------" << "\n";
+  init_check2("POSCAR_init");
   
   return 0;
 }

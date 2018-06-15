@@ -15,6 +15,7 @@
 #include "lavax.hpp"
 #include "parse_config_file.hpp"
 #include "init_check.hpp"
+#include <boost/format.hpp>
 
 namespace lvx {
   double get_mass_from_POTCAR() {
@@ -94,7 +95,29 @@ namespace lvx {
     file.close();
   }
   
-  
+  bool backup_files(const std::vector<std::string>& file_names,
+                    int unique_idx, int lvx_iterations) {
+    std::string fmt_str = std::string("%1$0") +
+      std::to_string(std::to_string(lvx_iterations).length()) + "d";
+    boost::format fmt(fmt_str);
+
+    fmt % unique_idx;
+    std::string folder_name = std::string("./RUN") + fmt.str();
+    std::cout << folder_name << "\n";
+
+    using namespace boost::filesystem;
+    
+    path p(folder_name);
+
+    if (!exists(p)) 
+      create_directory(p);
+    
+    for (const auto& file_name : file_names)
+      copy_file(path(std::string("./") + file_name),
+                path(folder_name + "/" + file_name),
+                copy_option::overwrite_if_exists);
+    return true;
+  }
 }
 
 // #define DATADIR 

@@ -30,14 +30,15 @@ namespace lvx {
     std::vector<std::string> files = {"INCAR", "KPOINTS", "POTCAR"};
     files.push_back(init_poscar);
 
+    bool success = true;
     for (std::string s : files) {
       path p(s);
       if (!exists(p)) {
         std::cout << "Please provide file '" << s << "'" << "\n";
-        return false;
+        success = false;
       }
     }
-    return true;
+    return success;
   }
   
 
