@@ -359,7 +359,81 @@ namespace lvx {
     a2 = read_vec3(poscar, dimensionless);
     a3 = read_vec3(poscar, dimensionless);
   }
-  
+
+  void parse_init_poscar(std::ifstream& poscar,
+                         quantity<angstrom_unit>& lattice_constant,
+                         vec3_dimless& a1,
+                         vec3_dimless& a2,
+                         vec3_dimless& a3,
+                         simulation_cell_v2& sim_cell) {
+    
+    _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
+
+    std::string line;
+    while (getline(poscar, line)) {
+      if (std::regex_match(line, std::regex("\\s*\\d+[\\s\\d]*"))) {
+        break;
+      }
+    }
+    std::regex rgx("(\\d+)");
+    std::vector<int> num_atom_species;
+    
+    std::for_each(std::sregex_iterator(line.begin(), line.end(), rgx),
+                  std::sregex_iterator(),
+                  [&num_atom_species] (const std::smatch& m) {
+                    num_atom_species.push_back(std::stoi(m.str(1)));
+                    // std::cout << std::stoi(m.str(1)) << "\n";
+                  });
+
+    for (int i = 0; i < num_atom_species.size(); ++i) {
+      atomic_element ae;
+      ae.vasp_indices.push_back(num_atom_species[i]);
+      sim_cell.elements.push_back(ae);
+    }
+
+    // Check if we are using Direct or Cartesian coordinates:
+    bool using_Direct = false;
+    while (getline(poscar, line)) {
+      if (std::regex_match(line, std::regex("C.*"))) {
+        using_Direct = false;
+        break;
+      }
+      else if (std::regex_match(line, std::regex("D.*"))) {
+        using_Direct = true;
+        break;
+      }
+    }
+
+    // Regex for floating point number:
+    std::regex reg("[+-]?(?=[.]?[0-9])[0-9]*(?:[.][0-9]*)?(?:[Ee][+-]?[0-9]+)?");
+
+    // Read all the position vectors:
+    std::vector<vec3_angstrom> pos_vec;
+    while (getline(poscar, line)) {
+      if (std::regex_search(line, reg)) {
+        if (using_Direct) {
+          vec3_dimless v = read_vec3(line, dimensionless);
+          pos_vec.push_back(transform(lattice_constant, a1, a2, a3, v));
+        } else
+          pos_vec.push_back(read_vec3(line, angstrom));
+      } else
+        break; // If we hit a blank line
+    }
+
+    // Read all the velocity vectors:
+    std::vector<vec3_velocity> vel_vec;
+    while (getline(poscar, line)) {
+      if (std::regex_search(line, reg)) {
+        vel_vec.push_back(read_vec3(line, angstrom_per_fs));
+      } else
+        break;
+    }
+
+    sim_cell.particles.clear();
+    for (int i = 0; i < pos_vec.size(); i++) {
+      sim_cell.particles.emplace_back(pos_vec[i], vel_vec[i]);
+    }
+  }
 
   void parse_init_poscar(std::ifstream& poscar,
                          quantity<angstrom_unit>& lattice_constant,

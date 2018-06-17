@@ -79,7 +79,9 @@ namespace lvx {
     return buffers;
   }
 
-  void replace_all_in_file(std::fstream& file, std::regex rgx, std::string replacement) {
+  std::stringstream replace_all_in_file(std::istream& file,
+                                        std::regex rgx,
+                                        std::string replacement) {
     std::string line;
     std::stringstream ss;
     
@@ -91,8 +93,27 @@ namespace lvx {
     }
     // file.close();
     
-    file << ss.rdbuf();
-    file.close();
+    // file << ss.rdbuf();
+    // file.close();
+    return ss;
+  }
+
+  void update_LAMMPS_script(std::string lammps_potential_file,
+                            std::string lammps_atomic_symbol,
+                            int vasp_nsw, double vasp_potim) {
+    std::fstream f("predictor.in");
+    std::stringstream ss;
+    ss = replace_all_in_file(f, std::regex("pair_coeff.*"),
+      std::string("pair_coeff * * ") + lammps_potential_file + " " + lammps_atomic_symbol);
+    // ss.seekg(0);
+    ss = replace_all_in_file(ss, std::regex("run.*"),
+      std::string("run ") + std::to_string((vasp_nsw+3)*5));
+    ss = replace_all_in_file(ss, std::regex("timestep.*"),
+      std::string("timestep ") + std::to_string(vasp_potim/5));
+    f.close();
+    f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
+    f << ss.str();
+    f.close();
   }
   
   bool backup_files(const std::vector<std::string>& file_names,
@@ -133,7 +154,7 @@ int main(int argc, char *argv[]) {
   if (!lvx::init_check2(conf_data["INIT_POSCAR"])) {
     return false;
   }
-
+  
   std::cout << lvx::get_mass_from_POTCAR()  << "\n";
 
   int NSW;
@@ -142,6 +163,49 @@ int main(int argc, char *argv[]) {
   lvx::parse_INCAR(NSW, POTIM);
   std::cout << NSW << " " << POTIM << "\n";
 
+  // std::vector<std::string> file_names = {"INCAR", "KPOINTS", "POTCAR"};
+  // lvx::backup_files(file_names, 13, 99);
+
+  lvx::update_LAMMPS_script(conf_data["LAMMPS_POTENTIAL_FILE"],
+                            conf_data["LAMMPS_ATOMIC_SYMBOL"],
+                            NSW, POTIM);
+
+  int lvx_iterations = std::stoi(conf_data["LVX_ITERATIONS"]);
+
+  bool use_adaptive_timestep;
+  std::istringstream is(conf_data["USE_ADAPTIVE_TIMESTEP"]);
+  is >> std::boolalpha >> use_adaptive_timestep;
+
+  boost::units::quantity<angstrom_unit> latt_const;
+  lvx::vec3_dimless       a1, a2, a3;
+  std::ifstream           init_poscar(conf_data["INIT_POSCAR"]);
+  lvx::simulation_cell_v2 sim_cell;
+  
+  lvx::parse_init_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
+
+  std::cout << latt_const << "\n";
+  std::cout << a1 << "\n";
+  std::cout << a2 << "\n";
+  std::cout << a3 << "\n";
+
+  for (auto& e : sim_cell.particles)
+    std::cout << e.getPos() << "\n";
+  
+#ifdef WIP
+  for (int i = 0; i < lvx_iterations; ++i) {
+    if (use_adaptive_timestep) {
+
+    }
+
+    std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
+                                      "CHGCAR", "DOSCAR", "EIGENVAL",
+                                      "OSZICAR", "PCDAT", "vasprun.xml",
+                                      "OUTCAR", "INCAR", "WAVECAR",
+                                      "IBZKPT", "POSCAR"};
+    backup_files(files, i, lvx_iterations);
+  }
+#endif
+#ifdef ACTIVE
   auto v = lvx::parse_POTCAR();
 
   std::vector<lvx::atom_species> w;
@@ -223,7 +287,7 @@ int main(int argc, char *argv[]) {
                                                                             
     }
   }
-  
+#endif
   // vec3_angstrom v1(units::length::angstrom_t(3.0),
   //                  units::length::angstrom_t(3.0),
   //                  units::length::angstrom_t(3.0));

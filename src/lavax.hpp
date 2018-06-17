@@ -250,6 +250,27 @@ namespace lvx {
 
   };
 
+  class atomic_element {
+  public:
+    std::string symbol;
+    std::string vasp_symbol_good;
+    std::string vasp_symbol_bad;
+    std::string vasp_potential_file_good;
+    std::string vasp_potential_file_bad;
+    std::vector<int> vasp_indices;
+
+    int number_atoms() {
+      return std::accumulate(vasp_indices.begin(),
+                             vasp_indices.end(), 0);
+    }
+  };
+
+  class simulation_cell_v2 {
+  public:
+    std::vector<atomic_element> elements;
+    std::vector<Particle_v2>    particles;
+  };
+
   class simulation_cell {
   public:
     std::vector<std::string> vasp_potential_symbols;
@@ -321,6 +342,13 @@ namespace lvx {
                     vec3_dimless& a2,
                     vec3_dimless& a3,
                     std::vector<atom_species>& P);
+
+  void parse_init_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    simulation_cell_v2& sim_cell);
 
 
   std::set<int> parse_lammps_neighbor(std::ifstream& file, quantity<angstrom_unit> cutoff);
