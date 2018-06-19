@@ -369,10 +369,30 @@ namespace lvx {
     
     _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
 
+    // std::smatch matches;
+    std::map<std::string,int> dict;
+
+    for (int i = 0; i < sim_cell.elements.size(); ++i) {
+      dict[sim_cell.elements[i].vasp_symbol_good] = i;
+      dict[sim_cell.elements[i].vasp_symbol_bad] = i;
+    }
+
+    std::vector<std::string> vasp_symbols;
+    
     std::string line;
     while (getline(poscar, line)) {
       if (std::regex_match(line, std::regex("\\s*\\d+[\\s\\d]*"))) {
         break;
+      }
+      // This can be simplified if you think about it:
+      if (std::regex_match(line, std::regex("\\w+.*"))) {
+        std::regex rgx("\\w+");
+        for( std::sregex_iterator it(line.begin(), line.end(), rgx), it_end;
+             it != it_end; ++it ) {
+          vasp_symbols.push_back((*it)[0]);
+          std::cout << "DEBUGGG " << (*it)[0] << "\n";
+        }
+        // continue;
       }
     }
     std::regex rgx("(\\d+)");
@@ -385,10 +405,24 @@ namespace lvx {
                     // std::cout << std::stoi(m.str(1)) << "\n";
                   });
 
-    for (int i = 0; i < num_atom_species.size(); ++i) {
-      atomic_element ae;
-      ae.vasp_indices.push_back(num_atom_species[i]);
-      sim_cell.elements.push_back(ae);
+    // for (int i = 0; i < num_atom_species.size(); ++i) {
+    //   atomic_element ae;
+    //   ae.vasp_indices.push_back(num_atom_species[i]);
+    //   sim_cell.elements.push_back(ae);
+    // }
+    
+    std::cout << vasp_symbols.size() << "\n";
+    std::cout << num_atom_species.size() << "\n";
+    
+    int j = 0;
+    for (auto s : vasp_symbols) {
+      if (s == sim_cell.elements[dict[s]].vasp_symbol_bad) {
+        sim_cell.elements[dict[s]].vasp_num_bad = num_atom_species[j];
+      }
+      else if (s == sim_cell.elements[dict[s]].vasp_symbol_good) {
+        sim_cell.elements[dict[s]].vasp_num_good = num_atom_species[j];
+      }
+      ++j;
     }
 
     // Check if we are using Direct or Cartesian coordinates:

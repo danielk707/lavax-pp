@@ -257,18 +257,27 @@ namespace lvx {
     std::string vasp_symbol_bad;
     std::string vasp_potential_file_good;
     std::string vasp_potential_file_bad;
-    std::vector<int> vasp_indices;
+    // std::pair<int,int> vasp_indices;
+    int vasp_num_good;
+    int vasp_num_bad;
 
     int number_atoms() {
-      return std::accumulate(vasp_indices.begin(),
-                             vasp_indices.end(), 0);
+      return vasp_num_good + vasp_num_bad;
     }
+    // int number_atoms() {
+    //   return std::accumulate(vasp_indices.begin(),
+    //                          vasp_indices.end(), 0);
+    // }
   };
 
   class simulation_cell_v2 {
   public:
     std::vector<atomic_element> elements;
     std::vector<Particle_v2>    particles;
+
+    // int index_by_vasp_good(std::string) {
+      
+    // }
   };
 
   class simulation_cell {

@@ -176,10 +176,38 @@ int main(int argc, char *argv[]) {
   std::istringstream is(conf_data["USE_ADAPTIVE_TIMESTEP"]);
   is >> std::boolalpha >> use_adaptive_timestep;
 
+  auto v = lvx::parse_POTCAR();
+
+  std::vector<lvx::atomic_element> atomic_catalog;
+
+  // int i = 0;
+  // std::map<std::string,std::string>::iterator it;
+  for (int i = 0; conf_data.find(std::string("ATOMIC_SYMBOL_") + std::to_string(i))
+         != conf_data.end(); ++i) {
+    lvx::atomic_element ae;
+    ae.symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
+    ae.vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
+    ae.vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
+    
+    std::ifstream f(std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i));
+    ae.vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
+                                        std::istreambuf_iterator<char>());
+
+    f.close();
+    f.open(std::string("VASP_POTENTIAL_FILE_BAD_")  + std::to_string(i));
+    ae.vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
+                                        std::istreambuf_iterator<char>());
+    f.close();
+    atomic_catalog.push_back(std::move(ae));
+    // ++i;
+  }
+  
   boost::units::quantity<angstrom_unit> latt_const;
   lvx::vec3_dimless       a1, a2, a3;
   std::ifstream           init_poscar(conf_data["INIT_POSCAR"]);
   lvx::simulation_cell_v2 sim_cell;
+
+  sim_cell.elements = atomic_catalog;
   
   lvx::parse_init_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
 
@@ -206,7 +234,6 @@ int main(int argc, char *argv[]) {
   }
 #endif
 #ifdef ACTIVE
-  auto v = lvx::parse_POTCAR();
 
   std::vector<lvx::atom_species> w;
 
