@@ -260,7 +260,8 @@ namespace lvx {
     // std::pair<int,int> vasp_indices;
     int vasp_num_good;
     int vasp_num_bad;
-
+    quantity<atomic_mass_unit> mass;
+    
     int number_atoms() {
       return vasp_num_good + vasp_num_bad;
     }
@@ -483,6 +484,12 @@ namespace lvx {
                                quantity<angstrom_unit> zhi,
                                std::vector<atom_species>& P, bool incl_vel = true);
 
+  std::string make_lammps_data(quantity<angstrom_unit> xhi,
+                               quantity<angstrom_unit> yhi,
+                               quantity<angstrom_unit> zhi,
+                               simulation_cell_v2& sim_cell,
+                               bool include_velocity = true);
+  
   template<class InputIt>
   std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
                           const vec3_dimless& a1,

@@ -6,6 +6,7 @@
 #include <string>
 #include <regex>
 #include <thread>
+#include <set>
 // #include <cstdlib>
 #include <complex>
 #include <unordered_map>
@@ -139,6 +140,19 @@ namespace lvx {
                 copy_option::overwrite_if_exists);
     return true;
   }
+
+  std::set<int> predict_neighbors(std::string lammps_command, double cut_off_dist) {
+    std::string cmd = lammps_command + " -in predictor.in";
+    system(cmd.c_str());
+    std::ifstream f("neigh.dump");
+    return parse_lammps_neighbor(f, cut_off_dist * angstrom);
+  }
+}
+
+void PRINT_SET(const std::set<int>& s) {
+  for (auto e : s)
+    std::cout << e << " ";
+  std::cout << "\n";
 }
 
 // #define DATADIR 
@@ -208,6 +222,7 @@ int main(int argc, char *argv[]) {
   lvx::simulation_cell_v2 sim_cell;
 
   sim_cell.elements = atomic_catalog;
+  sim_cell.elements[0].mass = 184.0 * u;
   
   lvx::parse_init_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
 
@@ -219,20 +234,38 @@ int main(int argc, char *argv[]) {
   for (auto& e : sim_cell.particles)
     std::cout << e.getPos() << "\n";
   
-#ifdef WIP
+// #ifdef WIP
   for (int i = 0; i < lvx_iterations; ++i) {
     if (use_adaptive_timestep) {
 
     }
+    std::ofstream writer("W_crystal.dat");
 
-    std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
-                                      "CHGCAR", "DOSCAR", "EIGENVAL",
-                                      "OSZICAR", "PCDAT", "vasprun.xml",
-                                      "OUTCAR", "INCAR", "WAVECAR",
-                                      "IBZKPT", "POSCAR"};
-    backup_files(files, i, lvx_iterations);
+    std::string content = lvx::make_lammps_data(latt_const * a1(0),
+                                                latt_const * a2(1),
+                                                latt_const * a3(2),
+                                                sim_cell);
+    writer << content;
+    writer.close();
+
+    std::set<int> si = lvx::predict_neighbors(conf_data["LAMMPS_COMMAND"],
+                                std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]));
+    std::cout << "LAMMPS prediction DONE" << "\n";
+    std::cout << "Neighbor index: ";
+    PRINT_SET(si);
+
+    for (auto j : si) {
+      
+    }
+
+    // std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
+    //                                   "CHGCAR", "DOSCAR", "EIGENVAL",
+    //                                   "OSZICAR", "PCDAT", "vasprun.xml",
+    //                                   "OUTCAR", "INCAR", "WAVECAR",
+    //                                   "IBZKPT", "POSCAR"};
+    // lvx::backup_files(files, i, lvx_iterations);
   }
-#endif
+// #endif
 #ifdef ACTIVE
 
   std::vector<lvx::atom_species> w;

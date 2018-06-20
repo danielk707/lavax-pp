@@ -8,6 +8,7 @@
 #include <thread>
 #include <cstdlib>
 #include <complex>
+#include <map>
 #include "lavax.hpp"
 
 namespace lvx {
@@ -614,6 +615,72 @@ namespace lvx {
           ss << k << " " << P[i].good_particles[j].getVel() << "\n";
           k++;
         }
+      }
+    }
+    
+    return ss.str();
+  }
+
+  std::string make_lammps_data(quantity<angstrom_unit> xhi,
+                               quantity<angstrom_unit> yhi,
+                               quantity<angstrom_unit> zhi,
+                               simulation_cell_v2& sim_cell,
+                               bool include_velocity = true) {
+    std::stringstream ss;
+    ss.precision(8);
+    ss << std::fixed;
+
+    ss << "# W Crystal bcc #\n\n";
+
+    ss << sim_cell.particles.size() << " atoms\n";
+    ss << sim_cell.elements.size() << " atom types\n\n";
+
+    ss << 0.0 << " " << xhi.value() << " xlo xhi\n";
+    ss << 0.0 << " " << yhi.value() << " ylo yhi\n";
+    ss << 0.0 << " " << zhi.value() << " zlo zhi\n";
+
+    ss << "\nMasses\n\n";
+    for (int i = 0; i < sim_cell.elements.size(); ++i) {
+      ss << i+1 << " " << sim_cell.elements[i].mass.value() << "\n";
+    }
+
+    ss << "\nAtoms\n\n";
+    // int k = 1;
+    // for (int i = 0; i < sim_cell.elements.size(); ++i) {
+    //   sim_cell.elements[i].number_atoms()
+    // }
+
+    // int j_upper = sim_cell.elements[0].number
+    std::vector<int> num_atoms;
+    for (int i = 0; i < sim_cell.elements.size(); ++i) {
+      num_atoms.push_back(sim_cell.elements[i].number_atoms());
+    }
+    std::vector<int> indices;
+    std::partial_sum(num_atoms.begin(), num_atoms.end(),
+                     std::back_inserter(indices));
+
+    std::cout << "INDICES: ";
+    for (auto i : num_atoms)
+      std::cout << i << " ";
+    std::cout << "\n";
+    
+    for (int i = 0; i < sim_cell.particles.size(); ++i) {
+      int j = 0;
+      if (i >= indices[j]) {
+        j++;
+      }
+      
+      ss << i+1 << " " << j+1 << " " << sim_cell.particles[i].getPos() << "\n";
+    }
+
+    if (include_velocity) {
+      ss << "\nVelocities\n\n";
+      for (int i = 0; i < sim_cell.particles.size(); ++i) {
+        // int j = 0;
+        // if (i >= indices[j])
+        //   ++j;
+      
+        ss << i+1 << " " << sim_cell.particles[i].getVel() << "\n";
       }
     }
     
