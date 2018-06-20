@@ -7,6 +7,7 @@
 pkgdata_DATA = lavax.conf predictor.in
 
 # AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
+# AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -nostdlib -nostdinc -DDATADIR=\"/home/danielk5/share/lavax\"
 AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"/home/danielk5/share/lavax\"
 #AM_LDFLAGS = -lboost_system -lboost_filesystem
 #AM_LDFLAGS=-L/home/mcg04/local/lib

@@ -625,7 +625,7 @@ namespace lvx {
                                quantity<angstrom_unit> yhi,
                                quantity<angstrom_unit> zhi,
                                simulation_cell_v2& sim_cell,
-                               bool include_velocity = true) {
+                               bool include_velocity) {
     std::stringstream ss;
     ss.precision(8);
     ss << std::fixed;

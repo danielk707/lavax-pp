@@ -19,7 +19,7 @@
 #include <boost/format.hpp>
 
 namespace lvx {
-  double get_mass_from_POTCAR() {
+  quantity<atomic_mass_unit> get_mass_from_POTCAR() {
     std::fstream file("POTCAR");
     std::string line;
 
@@ -28,10 +28,10 @@ namespace lvx {
       std::smatch matches;
 
       if (std::regex_search(line, matches, rgx)) {
-        return std::stod(matches[1]);
+        return std::stod(matches[1]) * u;
       }
     }
-    return 0.0;
+    return 0.0 * u;
   }
 
   bool parse_INCAR(int& NSW, double& POTIM) {
