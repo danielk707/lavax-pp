@@ -142,7 +142,7 @@ namespace lvx {
   }
 
   std::set<int> predict_neighbors(std::string lammps_command, double cut_off_dist) {
-    std::string cmd = lammps_command + " -in predictor.in";
+    std::string cmd = lammps_command + " -in predictor.in > /dev/null";
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom);
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
     return false;
   }
   
-  std::cout << lvx::get_mass_from_POTCAR()  << "\n";
+  std::cout << lvx::get_mass_from_POTCAR() << "\n";
 
   int NSW;
   double POTIM;
@@ -193,36 +193,39 @@ int main(int argc, char *argv[]) {
   auto v = lvx::parse_POTCAR();
 
   std::vector<lvx::atomic_element> atomic_catalog;
+  std::vector<std::shared_ptr<lvx::atomic_element_info> > atomic_catalog_;
 
   // int i = 0;
   // std::map<std::string,std::string>::iterator it;
   for (int i = 0; conf_data.find(std::string("ATOMIC_SYMBOL_") + std::to_string(i))
          != conf_data.end(); ++i) {
-    lvx::atomic_element ae;
-    ae.symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
-    ae.vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
-    ae.vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
+    // lvx::atomic_element ae;
+    std::shared_ptr<lvx::atomic_element_info> aep(new lvx::atomic_element_info);
+
+    aep->symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
+    aep->mass   = std::stod(conf_data[std::string("ATOMIC_MASS_")   + std::to_string(i)]) * u;
+    aep->atom_type        = i+1;
+    aep->vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
+    aep->vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
     
     std::ifstream f(std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i));
-    ae.vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
-                                        std::istreambuf_iterator<char>());
-
+    aep->vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
+                                          std::istreambuf_iterator<char>());
     f.close();
     f.open(std::string("VASP_POTENTIAL_FILE_BAD_")  + std::to_string(i));
-    ae.vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
-                                        std::istreambuf_iterator<char>());
+    aep->vasp_potential_file_bad.assign((std::istreambuf_iterator<char>(f)),
+                                         std::istreambuf_iterator<char>());
     f.close();
-    atomic_catalog.push_back(std::move(ae));
-    // ++i;
+    atomic_catalog_.push_back(std::move(aep));
   }
   
   boost::units::quantity<angstrom_unit> latt_const;
   lvx::vec3_dimless       a1, a2, a3;
   std::ifstream           init_poscar(conf_data["INIT_POSCAR"]);
-  lvx::simulation_cell_v2 sim_cell;
+  lvx::simulation_cell_v3 sim_cell;
 
-  sim_cell.elements = atomic_catalog;
-  sim_cell.elements[0].mass = 184.0 * u;
+  sim_cell.elements_info = atomic_catalog_;
+  // sim_cell.elements[0].mass = 184.0 * u;
   
   lvx::parse_init_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
 
@@ -255,7 +258,7 @@ int main(int argc, char *argv[]) {
     PRINT_SET(si);
 
     for (auto j : si) {
-      
+      sim_cell.particles[j-1].high_prec = true;
     }
 
     // std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",

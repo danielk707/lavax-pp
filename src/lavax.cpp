@@ -55,140 +55,6 @@ namespace lvx {
     return ss.str();
   }
 
-  std::ostream& operator<<(std::ostream &strm, const Vector3& a) {
-    return strm << std::setprecision(8) << a.x << " " << a.y << " " << a.z;
-  }
-
-  double abs(const Vector3& v) {
-    return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-  }
-  
-  // std::string make_poscar(double lattice_constant, Vector3 a1, Vector3 a2, Vector3 a3,
-  //                         int I, int J, int K) {
-  //   std::stringstream ss;
-
-  //   ss << "BCC Xx " << 2*I*J*K <<"\n";
-  //   ss << lattice_constant << "\n";
-  //   ss << a1 << "\n";
-  //   ss << a2 << "\n";
-  //   ss << a3 << "\n";
-  //   ss << 2*I*J*K  << "\n";
-  //   ss << "Direct\n";
-
-  //   ss << std::fixed << std::setprecision(8);
-    
-  //   auto P = make_bcc(lattice_constant, I, J, K);
-    
-  //   for (const auto& p : P) {
-  //     ss << p.getPosition() << "\n";
-  //   }
-      
-  //   return ss.str();
-  // }
-  
-  // std::vector<std::vector<int>> parse_lammps_neighbor(std::ifstream& file) {
-  //   std::regex reg("ITEM\\: ENTRIES c_neigh\\[1\\] c_neigh\\[2\\]");
-  //   std::string line;
-  //   while (getline(file, line)) {
-  //     if (std::regex_search(line, reg)) {
-  //       std::cout << "FOUND" << "\n";
-  //       break;
-  //     }
-  //   }
-
-  //   std::vector<std::vector<int>> indicies;
-
-  //   int i = 0, i_prev = 0, j = 0;
-    
-  //   std::vector<int> l;
-  //   getline(file, line);
-  //   std::stringstream ss(line);
-  //   ss >> i; i_prev = i;
-  //   ss >> j;
-  //   l.push_back(i);
-  //   l.push_back(j);
-    
-  //   while (file.peek() != EOF) {
-
-  //     while (getline(file, line)) {
-  //       ss = std::stringstream(line);
-  //       ss >> i;
-  //       ss >> j;
-        
-  //       if (i != i_prev) {
-  //         i_prev = i;
-  //         break;
-  //       }
-        
-  //       l.push_back(j);
-  //       i_prev = i;
-  //     }
-  //     indicies.push_back(l);
-  //     l.clear();
-  //     l.push_back(i); l.push_back(j);
-  //   }
-  //   return indicies;
-  // }
-  
-  // void parse_poscar(std::ifstream& poscar, double& lattice_constant,
-  //                   Vector3& a1, Vector3& a2, Vector3& a3, std::vector<Particle>& v) {
-  //   poscar.ignore(1024, '\n'); // Ignore first line
-
-  //   poscar >> lattice_constant;
-  //   a1 = read_vector3(poscar);
-  //   a2 = read_vector3(poscar);
-  //   a3 = read_vector3(poscar);
-
-  //   for (int i = 0; i < 3; i++)
-  //     poscar.ignore(1024, '\n');
-
-  //   std::string line;
-  //   // Regex for floating point number:
-  //   std::regex reg("[+-]?(?=[.]?[0-9])[0-9]*(?:[.][0-9]*)?(?:[Ee][+-]?[0-9]+)?");
-
-  //   // Read all the position vectors:
-  //   std::vector<Vector3> pos_vec;
-  //   while (getline(poscar, line)) {
-  //     if (std::regex_search(line, reg)) { // If line contains floating point, assume it has an entire vector:
-  //       pos_vec.push_back(read_vector3(line));
-  //     } else
-  //       break; // If we hit a blank line
-  //   }
-
-  //   // Read all the velocity vectors:
-  //   std::vector<Vector3> vel_vec;
-  //   while (getline(poscar, line)) {
-  //     if (std::regex_search(line, reg)) {
-  //       vel_vec.push_back(read_vector3(line));
-  //     } else
-  //       break;
-  //   }
-
-  //   // Construct all the particles (from positions and velocities) and add them to v:
-  //   for (int i = 0; i < pos_vec.size(); i++) {
-  //     v.emplace_back(pos_vec[i], vel_vec[i]);
-  //   }
-  // }
-  
-  // // ------------------------------------------------------------
-  // std::vector<Particle> make_bcc(double lattice_constant, int I, int J, int K) {
-  //   double& L = lattice_constant;
-  //   std::vector<Particle> list;
-
-  //   int idx = 1;
-  //   for (int i = 0; i < I; ++i) {
-  //     for (int j = 0; j < J; ++j) {
-  //       for (int k = 0; k < K; ++k) {
-  //         list.emplace_back(idx, Vector3(i*L, j*L, k*L), Vector3(0,0,0));
-  //         ++idx;
-  //         list.emplace_back(idx, Vector3((i+0.5)*L, (j+0.5)*L, (k+0.5)*L), Vector3(0,0,0));
-  //         ++idx;
-  //       }
-  //     }
-  //   }
-  //   return list;
-  // }
-
   std::vector<Particle_v2> create_crystal(crystal_structure cstruct,
                                           quantity<angstrom_unit> lattice_constant,
                                           int I, int J, int K) {
@@ -475,6 +341,131 @@ namespace lvx {
                          vec3_dimless& a1,
                          vec3_dimless& a2,
                          vec3_dimless& a3,
+                         simulation_cell_v3& sim_cell) {
+    
+    _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
+
+    // std::smatch matches;
+    std::map<std::string,std::pair<int, bool>> dict;
+
+    for (int i = 0; i < sim_cell.elements_info.size(); ++i) {
+      dict[sim_cell.elements_info[i]->vasp_symbol_good] = std::make_pair(i,false);
+      dict[sim_cell.elements_info[i]->vasp_symbol_bad]  = std::make_pair(i,true);
+    }
+    // std::cout << "GOT HERE" << "\n";
+    std::vector<std::string> vasp_symbols;
+    
+    std::string line;
+    while (getline(poscar, line)) {
+      if (std::regex_match(line, std::regex("\\s*\\d+[\\s\\d]*"))) {
+        break;
+      }
+      // This can be simplified if you think about it:
+      if (std::regex_match(line, std::regex("\\w+.*"))) {
+        std::regex rgx("\\w+");
+        for( std::sregex_iterator it(line.begin(), line.end(), rgx), it_end;
+             it != it_end; ++it ) {
+          vasp_symbols.push_back((*it)[0]);
+          std::cout << "DEBUGGG " << (*it)[0] << "\n";
+        }
+        // continue;
+      }
+    }
+
+    // Parse line containing number of atoms of each potential:
+    std::regex rgx("(\\d+)");
+    std::vector<int> num_atom_species;
+    
+    std::for_each(std::sregex_iterator(line.begin(), line.end(), rgx),
+                  std::sregex_iterator(),
+                  [&num_atom_species] (const std::smatch& m) {
+                    num_atom_species.push_back(std::stoi(m.str(1)));
+                    // std::cout << std::stoi(m.str(1)) << "\n";
+                  });
+
+    // for (int i = 0; i < num_atom_species.size(); ++i) {
+    //   atomic_element ae;
+    //   ae.vasp_indices.push_back(num_atom_species[i]);
+    //   sim_cell.elements.push_back(ae);
+    // }
+    
+    // std::cout << vasp_symbols.size() << "\n";
+    // std::cout << num_atom_species.size() << "\n";
+    
+    // int j = 0;
+    // for (auto s : vasp_symbols) {
+    //   if (s == sim_cell.elements[dict[s]].vasp_symbol_bad) {
+    //     sim_cell.elements[dict[s]].vasp_num_bad = num_atom_species[j];
+    //   }
+    //   else if (s == sim_cell.elements[dict[s]].vasp_symbol_good) {
+    //     sim_cell.elements[dict[s]].vasp_num_good = num_atom_species[j];
+    //   }
+    //   ++j;
+    // }
+
+    std::vector<int> indices;
+    std::partial_sum(num_atom_species.begin(), num_atom_species.end(),
+                     std::back_inserter(indices));
+
+    // Check if we are using Direct or Cartesian coordinates:
+    bool using_Direct = false;
+    while (getline(poscar, line)) {
+      if (std::regex_match(line, std::regex("C.*"))) {
+        using_Direct = false;
+        break;
+      }
+      else if (std::regex_match(line, std::regex("D.*"))) {
+        using_Direct = true;
+        break;
+      }
+    }
+
+    // Regex for floating point number:
+    std::regex reg("[+-]?(?=[.]?[0-9])[0-9]*(?:[.][0-9]*)?(?:[Ee][+-]?[0-9]+)?");
+
+    // Read all the position vectors:
+    std::vector<vec3_angstrom> pos_vec;
+    while (getline(poscar, line)) {
+      if (std::regex_search(line, reg)) {
+        if (using_Direct) {
+          vec3_dimless v = read_vec3(line, dimensionless);
+          pos_vec.push_back(transform(lattice_constant, a1, a2, a3, v));
+        } else
+          pos_vec.push_back(read_vec3(line, angstrom));
+      } else
+        break; // If we hit a blank line
+    }
+
+    // Read all the velocity vectors:
+    std::vector<vec3_velocity> vel_vec;
+    while (getline(poscar, line)) {
+      if (std::regex_search(line, reg)) {
+        vel_vec.push_back(read_vec3(line, angstrom_per_fs));
+      } else
+        break;
+    }
+
+    
+    sim_cell.particles.clear();
+    int k = 0;
+    for (int i = 0; i < pos_vec.size(); i++) {
+      atomic_particle p(pos_vec[i], vel_vec[i]);
+      if (i >= indices[k]) {
+        ++k;
+      }
+        
+      p.element_info = sim_cell.elements_info[dict[vasp_symbols[k]].first];
+      p.high_prec    = dict[vasp_symbols[k]].second;
+      sim_cell.particles.push_back(p);
+      // sim_cell.particles.emplace_back(pos_vec[i], vel_vec[i]);
+    }
+  }
+
+  void parse_init_poscar(std::ifstream& poscar,
+                         quantity<angstrom_unit>& lattice_constant,
+                         vec3_dimless& a1,
+                         vec3_dimless& a2,
+                         vec3_dimless& a3,
                          std::vector<atom_species>& P) {
     _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
 
@@ -686,23 +677,44 @@ namespace lvx {
     
     return ss.str();
   }
-  
-  vec3_angstrom read_vec3_angstrom(std::istream& strm) {
-    double x, y, z;
-    strm >> x;
-    strm >> y;
-    strm >> z;
 
-    vec3_angstrom rtn;
-    rtn = x * angstrom,
-          y * angstrom,
-          z * angstrom;
+  std::string make_lammps_data(quantity<angstrom_unit> xhi,
+                               quantity<angstrom_unit> yhi,
+                               quantity<angstrom_unit> zhi,
+                               simulation_cell_v3& sim_cell,
+                               bool include_velocity) {
+    std::stringstream ss;
+    ss.precision(8);
+    ss << std::fixed;
 
-    return rtn;
-  }
+    ss << "# W Crystal bcc #\n\n";
 
-  vec3_angstrom read_vec3_angstrom(std::string& line) {
-    std::stringstream ss(line);
-    return read_vec3_angstrom(ss);
+    ss << sim_cell.particles.size()     << " atoms\n";
+    ss << sim_cell.elements_info.size() << " atom types\n\n";
+
+    ss << 0.0 << " " << xhi.value() << " xlo xhi\n";
+    ss << 0.0 << " " << yhi.value() << " ylo yhi\n";
+    ss << 0.0 << " " << zhi.value() << " zlo zhi\n";
+
+    ss << "\nMasses\n\n";
+    for (int i = 0; i < sim_cell.elements_info.size(); ++i) {
+      ss << sim_cell.elements_info[i]->atom_type << " "
+         << sim_cell.elements_info[i]->mass.value() << "\n";
+    }
+
+    ss << "\nAtoms\n\n";
+    for (int i = 0; i < sim_cell.particles.size(); ++i) {
+      ss << i+1 << " " << sim_cell.particles[i].element_info->atom_type
+         << " " << sim_cell.particles[i].getPos() << "\n";
+    }
+
+    if (include_velocity) {
+      ss << "\nVelocities\n\n";
+      for (int i = 0; i < sim_cell.particles.size(); ++i) {
+        ss << i+1 << " " << sim_cell.particles[i].getVel() << "\n";
+      }
+    }
+    
+    return ss.str();
   }
 }
