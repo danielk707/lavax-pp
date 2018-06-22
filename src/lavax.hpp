@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <regex>
+#include <numeric>
 // #include <armadillo>
 // #include <Eigen/Core>
 #include "small_scale_units.hpp"
