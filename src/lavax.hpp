@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <regex>
 #include <numeric>
+#include <tuple>
 // #include <armadillo>
 // #include <Eigen/Core>
 #include "small_scale_units.hpp"
@@ -99,7 +100,7 @@ namespace lvx {
     std::vector<std::shared_ptr<lvx::atomic_element_info> >
                                  elements_info;
     std::vector<atomic_particle> particles;
-
+    std::vector<std::tuple<std::string,int,bool> > vasp_symbol_count_helper;
     // int index_by_vasp_good(std::string) {
       
     // }
@@ -237,7 +238,12 @@ namespace lvx {
                           const vec3_dimless& a2,
                           const vec3_dimless& a3,
                           const simulation_cell& sim_cell);
-  
+
+  std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const simulation_cell_v3& sim_cell);
   // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
   //                      const vec3_dimless& dir,
   //                      const quantity<electron_volt_unit>& energy) {

@@ -208,13 +208,14 @@ int main(int argc, char *argv[]) {
     aep->vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
     aep->vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
     
-    std::ifstream f(std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i));
+    std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i)]);
     aep->vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
                                           std::istreambuf_iterator<char>());
     f.close();
-    f.open(std::string("VASP_POTENTIAL_FILE_BAD_")  + std::to_string(i));
+    f.open(conf_data[std::string("VASP_POTENTIAL_FILE_BAD_") + std::to_string(i)]);
     aep->vasp_potential_file_bad.assign((std::istreambuf_iterator<char>(f)),
                                          std::istreambuf_iterator<char>());
+    // std::cout << aep->vasp_potential_file_bad;
     f.close();
     atomic_catalog_.push_back(std::move(aep));
   }
@@ -240,10 +241,32 @@ int main(int argc, char *argv[]) {
 // #ifdef WIP
   for (int i = 0; i < lvx_iterations; ++i) {
     if (use_adaptive_timestep) {
+      auto itr =
+      std::max_element(sim_cell.particles.begin(),
+                       sim_cell.particles.end(),
+                       [] (const lvx::atomic_particle& a,
+                           const lvx::atomic_particle& b) {
+                         return lvx::norm(a.getVel()).value() < lvx::norm(b.getVel()).value();
+                       });
+      lvx::vec3_velocity max_vel = itr->getVel();
+      auto speed = lvx::norm(max_vel);
 
+      double dt = std::min(std::stod(conf_data["MAX_DISTANCE"])/speed.value(),
+                           std::stod(conf_data["MAX_TIMESTEP"]));
+
+      std::fstream f("INCAR");
+      std::stringstream ss = lvx::replace_all_in_file(f, std::regex(".*POTIM.*"),
+                                                      std::string("POTIM = ") + std::to_string(dt));
+      f << ss.str(); f.close();
+      f.open("predictor.in");
+      ss = lvx::replace_all_in_file(f,  std::regex("^timestep.*"),
+                                    std::string("timestep ") + std::to_string(dt/5));
+      ss = lvx::replace_all_in_file(ss, std::regex(".*run.*"),
+                                    std::string("run ") + std::to_string((NSW+3)*5));
+      f << ss.str(); f.close();
+      std::cout << "POTIM = " << dt << "\n";
     }
     std::ofstream writer("W_crystal.dat");
-
     std::string content = lvx::make_lammps_data(latt_const * a1(0),
                                                 latt_const * a2(1),
                                                 latt_const * a3(2),
@@ -253,20 +276,52 @@ int main(int argc, char *argv[]) {
 
     std::set<int> si = lvx::predict_neighbors(conf_data["LAMMPS_COMMAND"],
                                 std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]));
-    std::cout << "LAMMPS prediction DONE" << "\n";
+    std::cout << "LAMMPS prediction DONE\n";
     std::cout << "Neighbor index: ";
     PRINT_SET(si);
 
+    for (int j = 0; j < sim_cell.particles.size(); ++j) {
+      sim_cell.particles[j].high_prec = false;
+    }
+    
     for (auto j : si) {
       sim_cell.particles[j-1].high_prec = true;
     }
 
-    // std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
-    //                                   "CHGCAR", "DOSCAR", "EIGENVAL",
-    //                                   "OSZICAR", "PCDAT", "vasprun.xml",
-    //                                   "OUTCAR", "INCAR", "WAVECAR",
-    //                                   "IBZKPT", "POSCAR"};
-    // lvx::backup_files(files, i, lvx_iterations);
+    writer.open("POSCAR");
+    content = lvx::make_poscar(latt_const, a1, a2, a3, sim_cell);
+    writer << content;
+    writer.close();
+
+    writer.open("POTCAR");
+    for (const auto& e : sim_cell.vasp_symbol_count_helper) {
+      if (std::get<1>(e) != 0) {
+        auto itr = std::find_if(sim_cell.elements_info.begin(),
+                                sim_cell.elements_info.end(),
+                                [&e] (std::shared_ptr<lvx::atomic_element_info> p) {
+                                  return (std::get<2>(e) ? p->vasp_symbol_good :
+                                                           p->vasp_symbol_bad) == std::get<0>(e);
+                                });
+        std::get<2>(e) ? (writer << (*itr)->vasp_potential_file_good) :
+                         (writer << (*itr)->vasp_potential_file_bad);
+      }
+    }
+    writer.close();
+
+    system(conf_data["VASP_COMMAND"].c_str());
+    std::cout << "VASP run DONE\n";
+
+    std::ifstream contcar("CONTCAR");
+    lvx::parse_init_poscar(contcar, latt_const, a1, a2, a3, sim_cell);
+    contcar.close();
+
+    std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
+                                      "CHGCAR", "DOSCAR", "EIGENVAL",
+                                      "OSZICAR", "PCDAT", "vasprun.xml",
+                                      "OUTCAR", "INCAR", "WAVECAR",
+                                      "IBZKPT", "POSCAR"};
+    lvx::backup_files(files, i, lvx_iterations);
+    std::cout << "--------------------\n";
   }
 // #endif
 #ifdef ACTIVE

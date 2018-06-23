@@ -55,6 +55,81 @@ namespace lvx {
     return ss.str();
   }
 
+  std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const simulation_cell_v3& sim_cell) {
+    std::stringstream ss;
+    // ss << std::fixed;
+    
+    ss << "BCC Xx \n";
+    ss << lattice_constant.value() << "\n";
+    ss << a1 << "\n";
+    ss << a2 << "\n";
+    ss << a3 << "\n";
+
+    std::vector<std::tuple<std::string,int,bool> > symbols_count;
+    for (auto e : sim_cell.elements_info) {
+      int num_bad = 
+      std::count_if(sim_cell.particles.cbegin(),
+                    sim_cell.particles.cend(),
+                    [&e] (const atomic_particle& a) {
+                      return (a.element_info->vasp_symbol_bad == e->vasp_symbol_bad) &&
+                        !a.high_prec;
+                    });
+
+      int num_good = 
+      std::count_if(sim_cell.particles.cbegin(),
+                    sim_cell.particles.cend(),
+                    [&e] (const atomic_particle& a) {
+                      return (a.element_info->vasp_symbol_good == e->vasp_symbol_good) &&
+                        a.high_prec;
+                    });
+      symbols_count.push_back(std::make_tuple(e->vasp_symbol_bad,  num_bad,  false));
+      symbols_count.push_back(std::make_tuple(e->vasp_symbol_good, num_good, true));      
+    }
+
+    for (const auto& sc : symbols_count) {
+      if (std::get<1>(sc) != 0)
+        ss << std::get<0>(sc) << " ";
+    }
+
+    ss << "\n";
+
+    for (const auto& sc : symbols_count) {
+      if (std::get<1>(sc) != 0)
+        ss << std::get<1>(sc) << " ";
+    }
+
+    ss << "\n";
+    ss << "Cartesian\n";
+
+    for (const auto& sc : symbols_count) {
+      for (const auto& p : sim_cell.particles) {
+        if        ( std::get<2>(sc) &&  p.high_prec && p.element_info->vasp_symbol_good == std::get<0>(sc)) {
+          ss << p.getPos() << "\n";
+        } else if (!std::get<2>(sc) && !p.high_prec && p.element_info->vasp_symbol_bad  == std::get<0>(sc)) {
+          ss << p.getPos() << "\n";
+        }
+      }
+    }
+
+    ss << "\n";
+    for (const auto& sc : symbols_count) {
+      for (const auto& p : sim_cell.particles) {
+        if        ( std::get<2>(sc) &&  p.high_prec && p.element_info->vasp_symbol_good == std::get<0>(sc)) {
+          ss << p.getVel() << "\n";
+        } else if (!std::get<2>(sc) && !p.high_prec && p.element_info->vasp_symbol_bad  == std::get<0>(sc)) {
+          ss << p.getVel() << "\n";
+        }
+      }
+    }
+    sim_cell.vasp_symbol_count_helper.assign(symbols_count.begin(),
+                                             symbols_count.end());
+    return ss.str();
+  }
+
   std::vector<Particle_v2> create_crystal(crystal_structure cstruct,
                                           quantity<angstrom_unit> lattice_constant,
                                           int I, int J, int K) {
@@ -96,7 +171,7 @@ namespace lvx {
         a1(1), a2(1), a3(1),
         a1(2), a2(2), a3(2);
 
-    std::cout << A << "\n";
+    // std::cout << A << "\n";
     
     // using namespace blitz::tensor;
     blitz::firstIndex i;
@@ -361,7 +436,7 @@ namespace lvx {
         break;
       }
       // This can be simplified if you think about it:
-      if (std::regex_match(line, std::regex("\\w+.*"))) {
+      if (std::regex_match(line, std::regex("\\s*\\w+.*"))) {
         std::regex rgx("\\w+");
         for( std::sregex_iterator it(line.begin(), line.end(), rgx), it_end;
              it != it_end; ++it ) {
