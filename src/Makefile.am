@@ -14,10 +14,10 @@ AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgda
 #AM_LDFLAGS=-L/usr/local/lib
 #AM_LDFLAGS=-L/home/danielk5/local/lib
 
-bin_PROGRAMS = unit_test lavax PKAvel
-unit_test_SOURCES = unit_test.cpp lavax.cpp init_check.cpp
+bin_PROGRAMS = lavax PKAvel
+#unit_test_SOURCES = unit_test.cpp lavax.cpp init_check.cpp
 #unit_test_LDFLAGS = -lboost_system -lboost_filesystem
-unit_test_LDADD = -lboost_system -lboost_filesystem
+#unit_test_LDADD = -lboost_system -lboost_filesystem
 
 lavax_SOURCES = main_lavax.cpp lavax.cpp init_check.cpp
 lavax_LDADD = -lboost_system -lboost_filesystem

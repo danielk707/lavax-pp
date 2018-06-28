@@ -24,6 +24,13 @@ namespace lvx {
   // using namespace boost::units::si;
   // boost::units::si::constants::codata::m_u
 
+  using vec3_length   = quantity<si::length,   blitz::Array<double,1>>;
+  // using vec3_velocity = quantity<si::velocity, blitz::Array<double,1>>;
+
+  using vec3_angstrom = blitz::TinyVector<quantity<angstrom_unit>,     3>;
+  using vec3_velocity = blitz::TinyVector<quantity<velocity_unit>,     3>;
+  using vec3_dimless  = blitz::TinyVector<quantity<si::dimensionless>, 3>;
+
   template <typename T>
   std::ostream& operator<<(std::ostream &strm,
                            const blitz::TinyVector<quantity<T>,3>& a) {
