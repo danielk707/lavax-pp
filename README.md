@@ -19,13 +19,18 @@ make
 make install
 ```
 
+## TODO
+  * Implement LAMMPS script for multiple atomic species.
+  * Test adaptive number of NSW steps.
+  * Remove energy from system at simulation cell boundary.
+
 ## lavax.conf
 lavax must be setup according to the following configuration file options:
 
 ```squidconf
 VASP_COMMAND    = mpirun -np 32 vasp533_mpi
 LAMMPS_COMMAND  = mpirun -np 8 lmp_mpi
-INIT_POSCAR     = POSCAR_init         # File describing the initial crystal state
+INIT_POSCAR     = POSCAR_init         # File describing the initial crystal state.
 LVX_ITERATIONS  = 70                  # Number of internal LAVAX iterations.
 LAMMPS_POTENTIAL_FILE = W_BN.eam.fs
 
@@ -33,6 +38,10 @@ LAMMPS_POTENTIAL_FILE = W_BN.eam.fs
 USE_ADAPTIVE_TIMESTEP = true
 MAX_DISTANCE = 0.1 # Angstroms
 MAX_TIMESTEP = 3   # Femtoseconds
+
+# Switching too many potentials may cause VASP to diverge:
+MAX_POTENTIAL_SUBSTITUTIONS = 3
+MAX_VASP_NSW = 10
 
 # The distance where the good and bad potentials starts to depart:
 POTENTIAL_DEPARTURE_DISTANCE = 2.0
@@ -44,10 +53,11 @@ VASP_POTENTIAL_FILE_GOOD_0   = POTCAR0_good # POTCAR will be concatenated
 VASP_POTENTIAL_FILE_BAD_0    = POTCAR0_bad  # from these.
 VASP_POTENTIAL_SYMBOL_GOOD_0 = Wsv
 VASP_POTENTIAL_SYMBOL_BAD_0  = W
+LAMMPS_ATOMIC_SYMBOL_0       = W
 ```
 
 ## POSCAR_init
-The initial POSCAR must contain a line containing the potential symbols, specified in the lavax.conf file.
+The initial POSCAR must contain a line with the potential symbols, as specified in the lavax.conf file.
 ```text
 BCC Xx 
 1.0

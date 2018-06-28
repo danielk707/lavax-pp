@@ -101,14 +101,101 @@ namespace lvx {
   
   };
 
+  class atom_species {
+  public:
+    std::string symbol;
+    std::string vasp_good_pot;
+    std::string vasp_bad_pot;
+    quantity<atomic_mass_unit> mass;
+    std::vector<Particle_v2> good_particles;
+    std::vector<Particle_v2> bad_particles;
+  // public:
+
+  //   void set_good_potential(std::string buffer) {
+  //     vasp_good_pot = buffer;
+  //   }
+
+  //   void set_bad_potential(std::string buffer) {
+  //     vasp_bad_pot = buffer;
+  //   }
+
+  //   void set_mass(quantity<atomic_mass_unit> mass) {
+  //     m_mass = mass;
+  //   }
+
+  };
+
+  class atomic_element {
+  public:
+    std::string symbol;
+    std::string vasp_symbol_good;
+    std::string vasp_symbol_bad;
+    std::string vasp_potential_file_good;
+    std::string vasp_potential_file_bad;
+    // std::pair<int,int> vasp_indices;
+    int vasp_num_good;
+    int vasp_num_bad;
+    quantity<atomic_mass_unit> mass;
+    
+    int number_atoms() {
+      return vasp_num_good + vasp_num_bad;
+    }
+    // int number_atoms() {
+    //   return std::accumulate(vasp_indices.begin(),
+    //                          vasp_indices.end(), 0);
+    // }
+  };
+
+  class simulation_cell {
+  public:
+    std::vector<std::string> vasp_potential_symbols;
+    std::vector<std::string> vasp_potential_file;
+    std::vector<int>         vasp_indices;
+    std::vector<int>         lammps_indices;
+    std::vector<Particle_v2> particles;
+  };
+  
+  class simulation_cell_v2 {
+  public:
+    std::vector<atomic_element> elements;
+    std::vector<Particle_v2>    particles;
+
+    // int index_by_vasp_good(std::string) {
+      
+    // }
+  };
+
   std::vector<Particle> make_bcc(double lattice_constant, int I, int J, int K);
   vec3_angstrom read_vec3_angstrom(std::istream& strm);
   vec3_angstrom read_vec3_angstrom(std::string& line);
   Vector3 read_vector3(std::istream&);
   Vector3 read_vector3(std::string&);
-
+  
+  std::vector<std::vector<int>> parse_lammps_neighbor(std::ifstream& file);
+  
   void parse_poscar(std::ifstream& poscar, double& lattice_constant,
                     Vector3& a1, Vector3& a2, Vector3& a3, std::vector<Particle>& v);
+
+  void parse_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    std::vector<Particle_v2>& P);
+
+  void parse_init_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    std::vector<atom_species>& P);
+
+  void parse_init_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    simulation_cell_v2& sim_cell);
 
   template<class InputIt>
   std::string make_poscar(double lattice_constant, Vector3 a1, Vector3 a2, Vector3 a3,
@@ -169,7 +256,24 @@ namespace lvx {
   std::string make_poscar(double lattice_constant, Vector3 a1, Vector3 a2, Vector3 a3,
                           int I, int J, int K);
 
-    // ------------------------------------------------------------
+  std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const simulation_cell& sim_cell);
+  
+  // ------------------------------------------------------------
+
+  std::string make_lammps_data(quantity<angstrom_unit> xhi,
+                               quantity<angstrom_unit> yhi,
+                               quantity<angstrom_unit> zhi,
+                               std::vector<atom_species>& P, bool incl_vel = true);
+
+  std::string make_lammps_data(quantity<angstrom_unit> xhi,
+                               quantity<angstrom_unit> yhi,
+                               quantity<angstrom_unit> zhi,
+                               simulation_cell_v2& sim_cell,
+                               bool include_velocity = true);
   template<class InputIt>
   std::string make_lammps_data(double mass, double xhi, double yhi, double zhi,
                                InputIt first_atom, InputIt last_atom, bool incl_vel = true) {

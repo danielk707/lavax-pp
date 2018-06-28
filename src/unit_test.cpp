@@ -39,6 +39,15 @@ int main(int argc, char *argv[])
 
   std::cout << "-------------------- init_check2 --------------------" << "\n";
   init_check2("POSCAR_init");
+
+  std::cout << "-------------------- parse_lammps_neighbor --------------------" << "\n";
+
+  f.close();
+  std::ifstream g("neigh.dump");
+  auto cutoff = 2.0_Angstrom;
+  int NSW;
   
+  parse_lammps_neighbor(g, cutoff, 5, 10, 3, NSW);
+
   return 0;
 }

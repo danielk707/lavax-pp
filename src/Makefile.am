@@ -6,22 +6,24 @@
 
 pkgdata_DATA = lavax.conf predictor.in
 
-# AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
+AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
 # AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -nostdlib -nostdinc -DDATADIR=\"/home/danielk5/share/lavax\"
-AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"/home/danielk5/local/share/lavax\"
+#AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"/home/danielk5/local/share/lavax\"
 #AM_LDFLAGS = -lboost_system -lboost_filesystem
 #AM_LDFLAGS=-L/home/mcg04/local/lib
 #AM_LDFLAGS=-L/usr/local/lib
-AM_LDFLAGS=-L/home/danielk5/local/lib
+#AM_LDFLAGS=-L/home/danielk5/local/lib
 
-bin_PROGRAMS = unit_test lavax test2
+bin_PROGRAMS = unit_test lavax PKAvel
 unit_test_SOURCES = unit_test.cpp lavax.cpp init_check.cpp
 #unit_test_LDFLAGS = -lboost_system -lboost_filesystem
 unit_test_LDADD = -lboost_system -lboost_filesystem
 
 lavax_SOURCES = main_lavax.cpp lavax.cpp init_check.cpp
 lavax_LDADD = -lboost_system -lboost_filesystem
-test2_SOURCES = test2.cpp
+
+PKAvel_SOURCES = main_PKAvel.cpp
+#test2_SOURCES = test2.cpp
 # lavax_LDFLAGS = -lboost_system -lboost_filesystem
 
 # test1_SOURCES = test1.cpp
