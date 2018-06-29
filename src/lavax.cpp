@@ -17,7 +17,7 @@ namespace lvx {
                           const vec3_dimless& a1,
                           const vec3_dimless& a2,
                           const vec3_dimless& a3,
-                          const simulation_cell_v3& sim_cell) {
+                          simulation_cell& sim_cell) {
     std::stringstream ss;
     // ss << std::fixed;
     
@@ -88,9 +88,9 @@ namespace lvx {
     return ss.str();
   }
 
-  std::vector<Particle_v2> create_crystal(crystal_structure cstruct,
-                                          quantity<angstrom_unit> lattice_constant,
-                                          int I, int J, int K) {
+  std::vector<Particle> create_crystal(crystal_structure cstruct,
+                                       quantity<angstrom_unit> lattice_constant,
+                                       int I, int J, int K) {
     auto& L = lattice_constant;
     
     vec3_velocity zero_vel;
@@ -98,7 +98,7 @@ namespace lvx {
                0.0 * angstrom_per_fs,
                0.0 * angstrom_per_fs;
 
-    std::vector<Particle_v2> P;
+    std::vector<Particle> P;
     
     if (cstruct == crystal_structure::BCC) {
       P.reserve(2*I*J*K);
@@ -243,7 +243,7 @@ namespace lvx {
                          vec3_dimless& a1,
                          vec3_dimless& a2,
                          vec3_dimless& a3,
-                         simulation_cell_v3& sim_cell) {
+                         simulation_cell& sim_cell) {
     
     _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
 
@@ -254,7 +254,7 @@ namespace lvx {
       dict[sim_cell.elements_info[i]->vasp_symbol_good] = std::make_pair(i,false);
       dict[sim_cell.elements_info[i]->vasp_symbol_bad]  = std::make_pair(i,true);
     }
-    // std::cout << "GOT HERE" << "\n";
+
     std::vector<std::string> vasp_symbols;
     
     std::string line;
@@ -270,7 +270,6 @@ namespace lvx {
           vasp_symbols.push_back((*it)[0]);
           std::cout << "DEBUGGG " << (*it)[0] << "\n";
         }
-        // continue;
       }
     }
 
@@ -284,26 +283,6 @@ namespace lvx {
                     num_atom_species.push_back(std::stoi(m.str(1)));
                     // std::cout << std::stoi(m.str(1)) << "\n";
                   });
-
-    // for (int i = 0; i < num_atom_species.size(); ++i) {
-    //   atomic_element ae;
-    //   ae.vasp_indices.push_back(num_atom_species[i]);
-    //   sim_cell.elements.push_back(ae);
-    // }
-    
-    // std::cout << vasp_symbols.size() << "\n";
-    // std::cout << num_atom_species.size() << "\n";
-    
-    // int j = 0;
-    // for (auto s : vasp_symbols) {
-    //   if (s == sim_cell.elements[dict[s]].vasp_symbol_bad) {
-    //     sim_cell.elements[dict[s]].vasp_num_bad = num_atom_species[j];
-    //   }
-    //   else if (s == sim_cell.elements[dict[s]].vasp_symbol_good) {
-    //     sim_cell.elements[dict[s]].vasp_num_good = num_atom_species[j];
-    //   }
-    //   ++j;
-    // }
 
     std::vector<int> indices;
     std::partial_sum(num_atom_species.begin(), num_atom_species.end(),
@@ -346,7 +325,6 @@ namespace lvx {
       } else
         break;
     }
-
     
     sim_cell.particles.clear();
     int k = 0;
@@ -366,7 +344,7 @@ namespace lvx {
   std::string make_lammps_data(quantity<angstrom_unit> xhi,
                                quantity<angstrom_unit> yhi,
                                quantity<angstrom_unit> zhi,
-                               simulation_cell_v3& sim_cell,
+                               simulation_cell& sim_cell,
                                bool include_velocity) {
     std::stringstream ss;
     ss.precision(8);

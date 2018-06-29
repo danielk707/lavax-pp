@@ -21,8 +21,6 @@ namespace lvx {
   // using namespace arma;
   // using namespace units;
   using namespace boost::units;
-  // using namespace boost::units::si;
-  // boost::units::si::constants::codata::m_u
 
   using vec3_length   = quantity<si::length,   blitz::Array<double,1>>;
   // using vec3_velocity = quantity<si::velocity, blitz::Array<double,1>>;
@@ -39,19 +37,19 @@ namespace lvx {
   }
 
   // ------------------------------------------------------------
-  class Particle_v2 {
+  class Particle {
   private:
     unsigned int type = 0;
   public:
     vec3_angstrom pos;
     vec3_velocity vel;
     
-    Particle_v2(vec3_angstrom pos, vec3_velocity vel) : pos(pos), vel(vel) {
+    Particle(vec3_angstrom pos, vec3_velocity vel) : pos(pos), vel(vel) {
       // this->vel = vel;
     }
-    Particle_v2(unsigned int type,
-                vec3_angstrom pos,
-                vec3_velocity vel) : type(type), pos(pos), vel(vel) {}
+    Particle(unsigned int type,
+             vec3_angstrom pos,
+             vec3_velocity vel) : type(type), pos(pos), vel(vel) {}
 
     vec3_angstrom getPos() const { return pos; }
     vec3_velocity getVel() const { return vel; }
@@ -68,14 +66,14 @@ namespace lvx {
     quantity<atomic_mass_unit> mass;
   };
 
-  class atomic_particle: public Particle_v2 {
+  class atomic_particle: public Particle {
   public:
-    atomic_particle(vec3_angstrom pos, vec3_velocity vel) : Particle_v2(pos,vel) {}
+    atomic_particle(vec3_angstrom pos, vec3_velocity vel) : Particle(pos,vel) {}
     std::shared_ptr<atomic_element_info> element_info;
     bool high_prec = false;
   };
 
-  class simulation_cell_v3 {
+  class simulation_cell {
   public:
     std::vector<std::shared_ptr<lvx::atomic_element_info> >
                                  elements_info;
@@ -118,16 +116,16 @@ namespace lvx {
 
   enum class crystal_structure { BCC, FCC };
   
-  std::vector<Particle_v2> create_crystal(crystal_structure cstruct,
-                                          quantity<angstrom_unit> lattice_constant,
-                                          int I, int J, int K);
+  std::vector<Particle> create_crystal(crystal_structure cstruct,
+                                       quantity<angstrom_unit> lattice_constant,
+                                       int I, int J, int K);
 
   void parse_init_poscar(std::ifstream& poscar,
                          quantity<angstrom_unit>& lattice_constant,
                          vec3_dimless& a1,
                          vec3_dimless& a2,
                          vec3_dimless& a3,
-                         simulation_cell_v3& sim_cell);
+                         simulation_cell& sim_cell);
 
   std::set<int> parse_lammps_neighbor(std::ifstream& file, quantity<angstrom_unit> cutoff);
   
@@ -141,14 +139,14 @@ namespace lvx {
   std::string make_lammps_data(quantity<angstrom_unit> xhi,
                                quantity<angstrom_unit> yhi,
                                quantity<angstrom_unit> zhi,
-                               simulation_cell_v3& sim_cell,
+                               simulation_cell& sim_cell,
                                bool include_velocity = true);
 
   std::string make_poscar(const quantity<angstrom_unit>& lattice_constant,
                           const vec3_dimless& a1,
                           const vec3_dimless& a2,
                           const vec3_dimless& a3,
-                          const simulation_cell_v3& sim_cell);
+                          simulation_cell& sim_cell);
   
   // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
   //                      const vec3_dimless& dir,

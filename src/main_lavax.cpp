@@ -34,7 +34,7 @@ namespace lvx {
     return 0.0 * u;
   }
 
-  bool parse_INCAR(int& NSW, double& POTIM) {
+  bool parse_INCAR(int& NSW, quantity<femtosecond_unit>& POTIM) {
     std::fstream file("INCAR");
     std::regex rgx1(".*NSW\\s*=\\s*(\\d+).*");
     std::regex rgx2(".*POTIM\\s*=\\s*(\\d+\\.\\d+).*");
@@ -53,7 +53,7 @@ namespace lvx {
       }
 
       if (std::regex_search(line, matches, rgx2)) {
-        POTIM = std::stod(matches[1]);
+        POTIM = std::stod(matches[1]) * femtosecond;
         b2 = true;
         // std::cout << std::stod(matches[1]) << "\n";
       }
@@ -101,7 +101,9 @@ namespace lvx {
 
   void update_LAMMPS_script(std::string lammps_potential_file,
                             std::string lammps_atomic_symbol,
-                            int vasp_nsw, double vasp_potim) {
+                            int vasp_nsw,
+                            quantity<femtosecond_unit> vasp_potim) {
+    
     std::fstream f("predictor.in");
     std::stringstream ss;
     ss = replace_all_in_file(f, std::regex("pair_coeff.*"),
@@ -110,7 +112,7 @@ namespace lvx {
     ss = replace_all_in_file(ss, std::regex("run.*"),
       std::string("run ") + std::to_string((vasp_nsw+3)*5));
     ss = replace_all_in_file(ss, std::regex("timestep.*"),
-      std::string("timestep ") + std::to_string(vasp_potim/5));
+      std::string("timestep ") + std::to_string(vasp_potim.value()/5));
     f.close();
     f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
     f << ss.str();
@@ -161,7 +163,7 @@ namespace lvx {
                                  max_vasp_nsw, count_good_prev, NSW);
   }
 
-  void concat_POTCAR(simulation_cell_v3& sim_cell) {
+  void concat_POTCAR(simulation_cell& sim_cell) {
     std::ofstream writer("POTCAR");
     for (const auto& e : sim_cell.vasp_symbol_count_helper) {
       if (std::get<1>(e) != 0) {
@@ -217,6 +219,8 @@ void PRINT_SET(const std::set<int>& s) {
 
 int main(int argc, char *argv[]) {
 
+  using namespace boost::units;
+
   lvx::init_check1();
 
   std::fstream f("lavax.conf");
@@ -230,7 +234,7 @@ int main(int argc, char *argv[]) {
   std::cout << lvx::get_mass_from_POTCAR() << "\n";
 
   int NSW;
-  double POTIM;
+  quantity<femtosecond_unit> POTIM;
 
   lvx::parse_INCAR(NSW, POTIM);
   std::cout << NSW << " " << POTIM << "\n";
@@ -249,10 +253,10 @@ int main(int argc, char *argv[]) {
 
   auto atomic_catalog = lvx::create_atomic_catalog(conf_data);
   
-  boost::units::quantity<angstrom_unit> latt_const;
+  quantity<angstrom_unit> latt_const;
   lvx::vec3_dimless       a1, a2, a3;
   std::ifstream           init_poscar(conf_data["INIT_POSCAR"]);
-  lvx::simulation_cell_v3 sim_cell;
+  lvx::simulation_cell    sim_cell;
 
   sim_cell.elements_info = atomic_catalog;
   
@@ -280,16 +284,17 @@ int main(int argc, char *argv[]) {
       lvx::vec3_velocity max_vel = itr->getVel();
       auto speed = lvx::norm(max_vel);
 
-      double dt = std::min(std::stod(conf_data["MAX_DISTANCE"])/speed.value(),
-                           std::stod(conf_data["MAX_POTIM"]));
+      auto dt = std::min(std::stod(conf_data["MAX_DISTANCE"]) * angstrom / speed,
+                         std::stod(conf_data["MAX_POTIM"]) * femtosecond);
 
       std::fstream f("INCAR");
-      std::stringstream ss = lvx::replace_all_in_file(f, std::regex(".*POTIM.*"),
-                                                      std::string("POTIM = ") + std::to_string(dt));
+      std::stringstream ss =
+        lvx::replace_all_in_file(f, std::regex(".*POTIM.*"),
+                                     std::string("POTIM = ") + std::to_string(dt.value()));
       f << ss.str(); f.close();
       f.open("predictor.in");
       ss = lvx::replace_all_in_file(f,  std::regex("^timestep.*"),
-                                        std::string("timestep ") + std::to_string(dt/5));
+                                        std::string("timestep ") + std::to_string(dt.value()/5));
       ss = lvx::replace_all_in_file(ss, std::regex(".*run.*"),
                                          std::string("run ") + std::to_string((NSW+3)*5));
       f << ss.str(); f.close();
@@ -350,166 +355,5 @@ int main(int argc, char *argv[]) {
     std::cout << "--------------------\n";
   }
 
-#ifdef ACTIVE
-
-  std::vector<lvx::atom_species> w;
-
-  for (int i = 0; i < v.size()/2; i++) {
-
-    lvx::atom_species a;
-    a.vasp_good_pot = v[i];
-    a.vasp_bad_pot  = v[i + v.size()/2];
-    std::stringstream ss(a.vasp_good_pot);
-
-    std::string line;
-    while (std::getline(ss, line)) {
-      std::regex rgx(".*POMASS\\s*=\\s*(\\d+\\.\\d+).*");
-      std::smatch matches;
-
-      if (std::regex_search(line, matches, rgx)) {
-        a.mass = std::stod(matches[1]) * u;
-        break;
-      }
-    }
-
-    ss = std::stringstream(a.vasp_good_pot);
-
-    while (std::getline(ss, line)) {
-      std::regex rgx(".*VRHFIN\\s*=\\s*(\\w+)\\s*:.*");
-      std::smatch matches;
-
-      if (std::regex_search(line, matches, rgx)) {
-        a.symbol = matches[1];
-        break;
-      }
-    }
-
-    std::cout << a.symbol << " " << a.mass << "\n";
-
-    w.push_back(std::move(a));
-  }
-  using namespace lvx;
-
-  quantity<angstrom_unit> latt_const;
-  vec3_dimless a1, a2, a3;
-  // std::cout << v[0] << "\n";
-  std::ifstream file(conf_data["INIT_POSCAR"]);
-  parse_init_poscar(file,
-                    latt_const, a1, a2, a3, w);
-
-  std::cout << latt_const << "\n";
-  std::cout << a1 << "\n";
-  std::cout << a2 << "\n";
-  std::cout << a3 << "\n";
-  std::cout << "\n";
-  // std::cout << w[1].bad_particles.size() << "\n";
-  for (auto a : w[0].bad_particles) {
-    std::cout << a.getPos() << "\n";
-  }
-
-  std::cout << lvx::make_lammps_data(1.0 * angstrom, 1.0 * angstrom, 1.0 * angstrom, w, true) << "\n";
-
-  bool USE_ADAPTIVE_TIMESTEP;
-  std::istringstream is(conf_data["USE_ADAPTIVE_TIMESTEP"]);
-  is >> std::boolalpha >> USE_ADAPTIVE_TIMESTEP;
-
-  std::cout << w[0].bad_particles[6].getVel() << "\n";
-  // std::cout << abs(w[0].bad_particles[0].getVel())) << "\n";
-  
-  for (int i = 0; i < std::stoi(conf_data["LVX_ITERATIONS"]); i++) {
-    if (USE_ADAPTIVE_TIMESTEP) {
-      std::vector<Particle_v2> temp;
-      for (auto a : w) {
-        temp.insert(temp.begin(), a.bad_particles.begin(), a.bad_particles.end());
-        temp.insert(temp.begin(), a.good_particles.begin(), a.good_particles.end());
-      }
-      auto max_vel = std::max_element(temp.begin(), temp.end(),
-                                      [] (const Particle_v2& p1, const Particle_v2& p2) {
-                                        return norm(p1.getVel()) < norm(p2.getVel());
-                                      });
-      std::cout << max_vel->getVel() << "\n";
-                                                                            
-    }
-  }
-#endif
-  // vec3_angstrom v1(units::length::angstrom_t(3.0),
-  //                  units::length::angstrom_t(3.0),
-  //                  units::length::angstrom_t(3.0));
-
-  // vec3_angstrom v2(units::length::angstrom_t(3.0),
-  //                  units::length::angstrom_t(3.0),
-  //                  units::length::angstrom_t(3.0));
-
-  // std::cout << v1.x()*3.0 << "\n";
-
-  // using namespace boost::units;
-  // using namespace boost::units::si;
-  // using namespace boost::units::metric;
-  // quantity<length> dx(meter * 2.0);
-
-  // using vec3_length = Eigen::Matrix<quantity<length>, 3, 1>;
-
-  // vec3_length v3(2.0*meter, 3.0*meter, 2.0*meter);
-  // vec3_length v4(2.0*meter, 3.0*meter, 2.0*meter);
-
-  // Eigen::Matrix<quantity<length>,3,3> A;
-  // A << 1*meter, 2*meter, 3*meter,
-  //   4*meter, 5*meter, 6*meter,
-  //   7*meter, 8*meter, 9*meter;
-  
-  // std::cout << 3.0*dx << "\n";
-  // // std::cout << A*v3 << "\n";
-
-  // auto l = A*v3;
-  // // std::cout << l.x() << "\n";
-  
-  // std::cin.get();
-  
-  // std::ifstream poscar("POSCAR");
-
-  // double latt_con;
-  // Vector3 a1, a2, a3;
-  // std::vector<Particle> particles;
-  // parse_poscar(poscar, latt_con, a1, a2, a3, particles);
-
-  // auto P = make_bcc(3.18, 4, 4, 4);
-
-  // std::ofstream lmp_data_file("W_crystal.dat");
-  // lmp_data_file << make_lammps_data(183.85, 3.18*4, 3.18*4, 3.18*4, P.begin(), P.end());
-  // lmp_data_file.close();
-
-  // // std::thread t1( [] () { system("} );
-  // // system("mpirun -np 4 lmp_mpi -in calc_neigh.in");
-
-  // // std::ifstream neigh_file("neigh.0");
-  // // auto neigh_list = qc::parse_lammps_neighbor(neigh_file);
-  
-
-  // std::vector<Vector3> latt_vec;
-  // latt_vec.push_back(a1);
-  // latt_vec.push_back(a2);
-  // latt_vec.push_back(a3);
-  
-  // std::cout << "-------------------- make_poscar --------------------\n";
-  // std::cout << make_poscar(latt_con, latt_vec[0], latt_vec[1], latt_vec[2],
-  //                          particles.begin(), particles.end()) << "\n";
-
-  // std::cout << "-------------------- make_lammps_data --------------------\n";
-  // std::cout << make_lammps_data(183.85, 3, 3, 3, particles.begin(), particles.end()) << "\n";
-
-  // // std::thread t( []() {system("ls");} );
-
-  // // t.join();
-
-  // std::ifstream neigh("neigh.0");
-
-  // auto vec = parse_lammps_neighbor(neigh);
-
-  // std::for_each(vec.begin(), vec.end(),
-  //               [] (const std::vector<int>& v) {
-  //                 std::for_each(v.begin(), v.end(), [] (int i) { std::cout << i << " "; });
-  //                 std::cout << "\n";
-  //               });
-  // // std::cout << static_cast<std::string>(v) << "\n";
   return 0;
 }

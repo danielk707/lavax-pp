@@ -358,3 +358,119 @@ namespace lvx {
   }
 
 }
+
+// #ifdef ACTIVE
+
+//   std::vector<lvx::atom_species> w;
+
+//   for (int i = 0; i < v.size()/2; i++) {
+
+//     lvx::atom_species a;
+//     a.vasp_good_pot = v[i];
+//     a.vasp_bad_pot  = v[i + v.size()/2];
+//     std::stringstream ss(a.vasp_good_pot);
+
+//     std::string line;
+//     while (std::getline(ss, line)) {
+//       std::regex rgx(".*POMASS\\s*=\\s*(\\d+\\.\\d+).*");
+//       std::smatch matches;
+
+//       if (std::regex_search(line, matches, rgx)) {
+//         a.mass = std::stod(matches[1]) * u;
+//         break;
+//       }
+//     }
+
+//     ss = std::stringstream(a.vasp_good_pot);
+
+//     while (std::getline(ss, line)) {
+//       std::regex rgx(".*VRHFIN\\s*=\\s*(\\w+)\\s*:.*");
+//       std::smatch matches;
+
+//       if (std::regex_search(line, matches, rgx)) {
+//         a.symbol = matches[1];
+//         break;
+//       }
+//     }
+
+//     std::cout << a.symbol << " " << a.mass << "\n";
+
+//     w.push_back(std::move(a));
+//   }
+//   using namespace lvx;
+
+//   quantity<angstrom_unit> latt_const;
+//   vec3_dimless a1, a2, a3;
+//   // std::cout << v[0] << "\n";
+//   std::ifstream file(conf_data["INIT_POSCAR"]);
+//   parse_init_poscar(file,
+//                     latt_const, a1, a2, a3, w);
+
+//   std::cout << latt_const << "\n";
+//   std::cout << a1 << "\n";
+//   std::cout << a2 << "\n";
+//   std::cout << a3 << "\n";
+//   std::cout << "\n";
+//   // std::cout << w[1].bad_particles.size() << "\n";
+//   for (auto a : w[0].bad_particles) {
+//     std::cout << a.getPos() << "\n";
+//   }
+
+//   std::cout << lvx::make_lammps_data(1.0 * angstrom, 1.0 * angstrom, 1.0 * angstrom, w, true) << "\n";
+
+//   bool USE_ADAPTIVE_TIMESTEP;
+//   std::istringstream is(conf_data["USE_ADAPTIVE_TIMESTEP"]);
+//   is >> std::boolalpha >> USE_ADAPTIVE_TIMESTEP;
+
+//   std::cout << w[0].bad_particles[6].getVel() << "\n";
+//   // std::cout << abs(w[0].bad_particles[0].getVel())) << "\n";
+  
+//   for (int i = 0; i < std::stoi(conf_data["LVX_ITERATIONS"]); i++) {
+//     if (USE_ADAPTIVE_TIMESTEP) {
+//       std::vector<Particle_v2> temp;
+//       for (auto a : w) {
+//         temp.insert(temp.begin(), a.bad_particles.begin(), a.bad_particles.end());
+//         temp.insert(temp.begin(), a.good_particles.begin(), a.good_particles.end());
+//       }
+//       auto max_vel = std::max_element(temp.begin(), temp.end(),
+//                                       [] (const Particle_v2& p1, const Particle_v2& p2) {
+//                                         return norm(p1.getVel()) < norm(p2.getVel());
+//                                       });
+//       std::cout << max_vel->getVel() << "\n";
+                                                                            
+//     }
+//   }
+// #endif
+  // vec3_angstrom v1(units::length::angstrom_t(3.0),
+  //                  units::length::angstrom_t(3.0),
+  //                  units::length::angstrom_t(3.0));
+
+  // vec3_angstrom v2(units::length::angstrom_t(3.0),
+  //                  units::length::angstrom_t(3.0),
+  //                  units::length::angstrom_t(3.0));
+
+  // std::cout << v1.x()*3.0 << "\n";
+
+  // using namespace boost::units;
+  // using namespace boost::units::si;
+  // using namespace boost::units::metric;
+  // quantity<length> dx(meter * 2.0);
+
+  // using vec3_length = Eigen::Matrix<quantity<length>, 3, 1>;
+
+  // vec3_length v3(2.0*meter, 3.0*meter, 2.0*meter);
+  // vec3_length v4(2.0*meter, 3.0*meter, 2.0*meter);
+
+  // Eigen::Matrix<quantity<length>,3,3> A;
+  // A << 1*meter, 2*meter, 3*meter,
+  //   4*meter, 5*meter, 6*meter,
+  //   7*meter, 8*meter, 9*meter;
+  
+  // std::cout << 3.0*dx << "\n";
+  // // std::cout << A*v3 << "\n";
+
+  // auto l = A*v3;
+  // // std::cout << l.x() << "\n";
+
+  // // std::thread t( []() {system("ls");} );
+  // // t.join();

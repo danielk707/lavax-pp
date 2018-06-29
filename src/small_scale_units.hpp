@@ -64,21 +64,12 @@ BOOST_UNITS_STATIC_CONSTANT(eV,              electronvolt_unit);
 BOOST_UNITS_STATIC_CONSTANT(angstrom_per_fs, velocity_unit);
 
 BOOST_UNITS_DEFINE_CONVERSION_FACTOR(atomic_mass_base_unit, si::mass, double,
-                                     boost::units::si::constants::codata::m_u.value().value());
+                                     si::constants::codata::m_u.value().value());
 BOOST_UNITS_DEFINE_CONVERSION_FACTOR(electronvolt_base_unit, energy_unit, double,
                                      si::constants::codata::e.value().value() /
                                      si::constants::codata::m_u.value().value() * 1.0E-10);
 // J = kg m^2 / s^2 =  m_u * 1E30 * 1E-20 u Å^2 / fs^2
 // eV = 1.602E-19 J
-
-// namespace lvx {
-//   using vec3_length   = quantity<si::length,   blitz::Array<double,1>>;
-//   // using vec3_velocity = quantity<si::velocity, blitz::Array<double,1>>;
-
-//   using vec3_angstrom = blitz::TinyVector<quantity<angstrom_unit>,     3>;
-//   using vec3_velocity = blitz::TinyVector<quantity<velocity_unit>,     3>;
-//   using vec3_dimless  = blitz::TinyVector<quantity<si::dimensionless>, 3>;
-// }
 
 typedef boost::units::si::dimensionless::unit_type dimless_unit;
 BOOST_UNITS_STATIC_CONSTANT(dimensionless, dimless_unit);
