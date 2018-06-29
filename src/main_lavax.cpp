@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
 
   sim_cell.elements_info = atomic_catalog;
   
-  lvx::parse_init_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
+  lvx::parse_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
 
   std::cout << latt_const << "\n";
   std::cout << a1 << "\n";
@@ -343,7 +343,7 @@ int main(int argc, char *argv[]) {
     std::cout << "VASP run DONE\n";
 
     std::ifstream contcar("CONTCAR");
-    lvx::parse_init_poscar(contcar, latt_const, a1, a2, a3, sim_cell);
+    lvx::parse_poscar(contcar, latt_const, a1, a2, a3, sim_cell);
     contcar.close();
 
     std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",

@@ -238,12 +238,12 @@ namespace lvx {
     a3 = read_vec3(poscar, dimensionless);
   }
 
-  void parse_init_poscar(std::ifstream& poscar,
-                         quantity<angstrom_unit>& lattice_constant,
-                         vec3_dimless& a1,
-                         vec3_dimless& a2,
-                         vec3_dimless& a3,
-                         simulation_cell& sim_cell) {
+  void parse_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    simulation_cell& sim_cell) {
     
     _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
 

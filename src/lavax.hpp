@@ -120,12 +120,12 @@ namespace lvx {
                                        quantity<angstrom_unit> lattice_constant,
                                        int I, int J, int K);
 
-  void parse_init_poscar(std::ifstream& poscar,
-                         quantity<angstrom_unit>& lattice_constant,
-                         vec3_dimless& a1,
-                         vec3_dimless& a2,
-                         vec3_dimless& a3,
-                         simulation_cell& sim_cell);
+  void parse_poscar(std::ifstream& poscar,
+                    quantity<angstrom_unit>& lattice_constant,
+                    vec3_dimless& a1,
+                    vec3_dimless& a2,
+                    vec3_dimless& a3,
+                    simulation_cell& sim_cell);
 
   std::set<int> parse_lammps_neighbor(std::ifstream& file, quantity<angstrom_unit> cutoff);
   
