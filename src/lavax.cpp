@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <complex>
 #include <map>
+#include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 #include "lavax.hpp"
 
 namespace lvx {
@@ -184,9 +186,30 @@ namespace lvx {
     // int iteration;
     std::string line;
 
+    // std::cout << cutoff.value() << "\n";
+
     while (std::getline(file, line)) {
       if (std::regex_match(line, std::regex(".*ITEM\\: ENTRIES c_distance\\[1\\] "
                                             "c_neigh\\[1\\] c_neigh\\[2\\].*"))) {
+      //   double r;
+      //   file >> r;
+
+      //   while (file.good()) {
+      //     if (r <= cutoff.value()) {
+      //       int i;
+      //       file >> i;
+      //       if (file.good()) indicies.insert(i);
+      //       int j;
+      //       file >> j;
+      //       if (file.good()) indicies.insert(j);
+      //     } else
+      //       break;
+      //     std::cout << r << " " << i << " " << j << "\n";
+      //     file >> r;
+      //   }
+      //   file.clear();
+      // }
+        
         // std::cout << line << "\n";
         while (std::getline(file, line)) {
           std::smatch matches;
@@ -196,11 +219,13 @@ namespace lvx {
                           "(\\d+)\\s+(\\d+)");
 
           if (std::regex_search(line, matches, reg3)) {
+            // std::cout << line << "\n";
+            // std::cout << std::stod(matches[1]) << " "  << std::stoi(matches[2]) << " " << std::stoi(matches[3]) << "\n";
             if (std::stod(matches[1]) <= cutoff.value()) {
               indices.insert(std::stoi(matches[2]));
               indices.insert(std::stoi(matches[3]));
-              if (abs(indices.size()-count_good_prev) >= max_potential_switch)
-                break;
+              if (abs(static_cast<int>(indices.size())-count_good_prev) >= max_potential_switch)
+                return indices;
             }
           } else
             break;
@@ -210,6 +235,8 @@ namespace lvx {
         std::getline(file, line);
         std::smatch matches;
 
+        // std::cout << line << "\n";
+
         if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
           NSW = std::stoi(matches[1]);
           if (NSW >= max_vasp_nsw)
@@ -217,8 +244,8 @@ namespace lvx {
           // std::cout << NSW << "\n";
         }
       }
-      if (abs(indices.size()-count_good_prev) >= max_potential_switch)
-        break;
+      // if (abs(static_cast<int>(indices.size())-count_good_prev) >= max_potential_switch)
+      //   break;
     }
     return indices;
   }
@@ -381,6 +408,158 @@ namespace lvx {
     return ss.str();
   }
 
+  quantity<atomic_mass_unit> get_mass_from_POTCAR(std::istream& file) {
+    // std::fstream file("POTCAR");
+    std::string line;
+
+    while (std::getline(file, line)) {
+      std::regex rgx(".*POMASS\\s*=\\s*(\\d+\\.\\d+).*");
+      std::smatch matches;
+
+      if (std::regex_search(line, matches, rgx)) {
+        return std::stod(matches[1]) * u;
+      }
+    }
+    return 0.0 * u;
+  }
+
+  bool parse_INCAR(int& NSW, quantity<femtosecond_unit>& POTIM) {
+    std::fstream file("INCAR");
+    std::regex rgx1(".*NSW\\s*=\\s*(\\d+).*");
+    std::regex rgx2(".*POTIM\\s*=\\s*(\\d+\\.\\d+).*");
+
+    std::string line;
+    bool b1 = false;
+    bool b2 = false;
+
+    while (std::getline(file, line)) {
+      std::smatch matches;
+
+      if (std::regex_search(line, matches, rgx1)) {
+        NSW = std::stoi(matches[1]);
+        b1 = true;
+        // std::cout << std::stoi(matches[1]) << "\n";
+      }
+
+      if (std::regex_search(line, matches, rgx2)) {
+        POTIM = std::stod(matches[1]) * femtosecond;
+        b2 = true;
+        // std::cout << std::stod(matches[1]) << "\n";
+      }
+    }
+    return b1 && b2;
+  }
+
+  std::vector<std::string> parse_POTCAR() {
+    std::fstream file("POTCAR");
+    std::vector<std::string> buffers;
+    std::string line;
+    
+    while (std::getline(file, line)) {
+      std::stringstream ss;
+      ss << line << '\n';
+      
+      while (std::getline(file, line)) {
+        ss << line << '\n';
+        if (std::regex_match(line, std::regex(".*End of Dataset.*")))
+          break;
+      }
+      buffers.push_back(ss.str());
+    }
+    return buffers;
+  }
+
+  void concat_POTCAR(simulation_cell& sim_cell) {
+    std::ofstream writer("POTCAR");
+    for (const auto& e : sim_cell.vasp_symbol_count_helper) {
+      if (std::get<1>(e) != 0) {
+        auto itr = std::find_if(sim_cell.elements_info.begin(),
+                                sim_cell.elements_info.end(),
+                                [&e] (std::shared_ptr<lvx::atomic_element_info> p) {
+                                  return (std::get<2>(e) ? p->vasp_symbol_good :
+                                                           p->vasp_symbol_bad) == std::get<0>(e);
+                                });
+        std::get<2>(e) ? (writer << (*itr)->vasp_potential_file_good) :
+                         (writer << (*itr)->vasp_potential_file_bad);
+      }
+    }
+    writer.close();
+  }
+
+  std::vector<std::shared_ptr<lvx::atomic_element_info> >
+  create_atomic_catalog(std::map<std::string, std::string>& conf_data) {
+    std::vector<std::shared_ptr<lvx::atomic_element_info> > atomic_catalog;
+
+    for (int i = 0; conf_data.find(std::string("ATOMIC_SYMBOL_") + std::to_string(i))
+           != conf_data.end(); ++i) {
+    
+      std::shared_ptr<lvx::atomic_element_info> aep(new lvx::atomic_element_info);
+
+      aep->symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
+      // aep->mass   = std::stod(conf_data[std::string("ATOMIC_MASS_")   + std::to_string(i)]) * u;
+      aep->atom_type        = i+1;
+      aep->vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
+      aep->vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
+    
+      std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i)]);
+      aep->vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
+                                           std::istreambuf_iterator<char>());
+      f.close();
+      f.open(conf_data[std::string("VASP_POTENTIAL_FILE_BAD_") + std::to_string(i)]);
+      aep->vasp_potential_file_bad.assign((std::istreambuf_iterator<char>(f)),
+                                          std::istreambuf_iterator<char>());
+      f.close();
+      std::istringstream iss(aep->vasp_potential_file_bad);
+      aep->mass = get_mass_from_POTCAR(iss);
+      atomic_catalog.push_back(std::move(aep));
+    }
+    return atomic_catalog;
+  }
+
+  std::stringstream replace_all_in_file(std::istream& file,
+                                        std::regex rgx,
+                                        std::string replacement) {
+    std::string line;
+    std::stringstream ss;
+    
+    while (std::getline(file, line)) {
+      if (std::regex_match(line, rgx)) {
+        ss << std::regex_replace(line, rgx, replacement) << "\n";
+      } else
+        ss << line << "\n";
+    }
+    // file.close();
+    
+    // file << ss.rdbuf();
+    // file.close();
+    return ss;
+  }
+
+  bool backup_files(const std::vector<std::string>& file_names,
+                    int unique_idx, int lvx_iterations) {
+    std::string fmt_str = std::string("%1$0") +
+      std::to_string(std::to_string(lvx_iterations).length()) + "d";
+    boost::format fmt(fmt_str);
+
+    fmt % unique_idx;
+    std::string folder_name = std::string("./RUN") + fmt.str();
+    std::cout << folder_name << "\n";
+
+    using namespace boost::filesystem;
+    
+    path p(folder_name);
+
+    if (!exists(p)) 
+      create_directory(p);
+    
+    for (const auto& file_name : file_names)
+      copy_file(path(std::string("./") + file_name),
+                path(folder_name + "/" + file_name),
+                copy_option::overwrite_if_exists);
+    return true;
+  }
+
+  
     // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
     //                      const vec3_dimless& dir,
     //                      const quantity<electron_volt_unit>& energy) {

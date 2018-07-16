@@ -14,6 +14,12 @@ quantity<angstrom_unit> operator "" _Angstrom(long double length) {
   return static_cast<double>(length) * angstrom;
 }
 
+void PRINT_SET(const std::set<int>& s) {
+  for (auto e : s)
+    std::cout << e << " ";
+  std::cout << "\n";
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -45,9 +51,11 @@ int main(int argc, char *argv[])
   f.close();
   std::ifstream g("neigh.dump");
   auto cutoff = 2.0_Angstrom;
-  int NSW;
+  int NSW = 0;
   
-  parse_lammps_neighbor(g, cutoff, 5, 10, 3, NSW);
+  auto s = parse_lammps_neighbor(g, cutoff, 5, 10, 3, NSW);
+  std::cout << s.size() << "\n";
+  PRINT_SET(s);
 
   return 0;
 }

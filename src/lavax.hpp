@@ -1,4 +1,4 @@
-#ifndef LAVAX_INC // Inclusion gaurd
+#ifndef LAVAX_INC // Inclusion guard
 #define LAVAX_INC
 
 #include <cmath>
@@ -147,6 +147,24 @@ namespace lvx {
                           const vec3_dimless& a2,
                           const vec3_dimless& a3,
                           simulation_cell& sim_cell);
+
+  quantity<atomic_mass_unit> get_mass_from_POTCAR(std::istream& file);
+
+  bool parse_INCAR(int& NSW, quantity<femtosecond_unit>& POTIM);
+
+  std::vector<std::string> parse_POTCAR();
+
+  void concat_POTCAR(simulation_cell& sim_cell);
+
+  std::vector<std::shared_ptr<lvx::atomic_element_info> >
+  create_atomic_catalog(std::map<std::string, std::string>& conf_data);
+
+  std::stringstream replace_all_in_file(std::istream& file,
+                                        std::regex rgx,
+                                        std::string replacement);
+
+  bool backup_files(const std::vector<std::string>& file_names,
+                    int unique_idx, int lvx_iterations);
   
   // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
   //                      const vec3_dimless& dir,

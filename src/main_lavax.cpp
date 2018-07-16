@@ -6,6 +6,7 @@
 #include <string>
 #include <regex>
 #include <thread>
+#include <chrono>
 #include <set>
 // #include <cstdlib>
 #include <complex>
@@ -16,91 +17,12 @@
 #include "lavax.hpp"
 #include "parse_config_file.hpp"
 #include "init_check.hpp"
-#include <boost/format.hpp>
 
 namespace lvx {
-  quantity<atomic_mass_unit> get_mass_from_POTCAR() {
-    std::fstream file("POTCAR");
-    std::string line;
-
-    while (std::getline(file, line)) {
-      std::regex rgx(".*POMASS\\s*=\\s*(\\d+\\.\\d+).*");
-      std::smatch matches;
-
-      if (std::regex_search(line, matches, rgx)) {
-        return std::stod(matches[1]) * u;
-      }
-    }
-    return 0.0 * u;
-  }
-
-  bool parse_INCAR(int& NSW, quantity<femtosecond_unit>& POTIM) {
-    std::fstream file("INCAR");
-    std::regex rgx1(".*NSW\\s*=\\s*(\\d+).*");
-    std::regex rgx2(".*POTIM\\s*=\\s*(\\d+\\.\\d+).*");
-
-    std::string line;
-    bool b1 = false;
-    bool b2 = false;
-
-    while (std::getline(file, line)) {
-      std::smatch matches;
-
-      if (std::regex_search(line, matches, rgx1)) {
-        NSW = std::stoi(matches[1]);
-        b1 = true;
-        // std::cout << std::stoi(matches[1]) << "\n";
-      }
-
-      if (std::regex_search(line, matches, rgx2)) {
-        POTIM = std::stod(matches[1]) * femtosecond;
-        b2 = true;
-        // std::cout << std::stod(matches[1]) << "\n";
-      }
-    }
-    return b1 && b2;
-  }
-
-  std::vector<std::string> parse_POTCAR() {
-    std::fstream file("POTCAR");
-    std::vector<std::string> buffers;
-    std::string line;
-    
-    while (std::getline(file, line)) {
-      std::stringstream ss;
-      ss << line << '\n';
-      
-      while (std::getline(file, line)) {
-        ss << line << '\n';
-        if (std::regex_match(line, std::regex(".*End of Dataset.*")))
-          break;
-      }
-      buffers.push_back(ss.str());
-    }
-    return buffers;
-  }
-
-  std::stringstream replace_all_in_file(std::istream& file,
-                                        std::regex rgx,
-                                        std::string replacement) {
-    std::string line;
-    std::stringstream ss;
-    
-    while (std::getline(file, line)) {
-      if (std::regex_match(line, rgx)) {
-        ss << std::regex_replace(line, rgx, replacement) << "\n";
-      } else
-        ss << line << "\n";
-    }
-    // file.close();
-    
-    // file << ss.rdbuf();
-    // file.close();
-    return ss;
-  }
 
   void update_LAMMPS_script(std::string lammps_potential_file,
                             std::string lammps_atomic_symbol,
+                            std::string lammps_pair_style,
                             int vasp_nsw,
                             quantity<femtosecond_unit> vasp_potim) {
     
@@ -109,6 +31,8 @@ namespace lvx {
     ss = replace_all_in_file(f, std::regex("pair_coeff.*"),
       std::string("pair_coeff * * ") + lammps_potential_file + " " + lammps_atomic_symbol);
     // ss.seekg(0);
+    ss = replace_all_in_file(ss, std::regex("pair_style.*"),
+      std::string("pair_style ") + lammps_pair_style);
     ss = replace_all_in_file(ss, std::regex("run.*"),
       std::string("run ") + std::to_string((vasp_nsw+3)*5));
     ss = replace_all_in_file(ss, std::regex("timestep.*"),
@@ -117,30 +41,6 @@ namespace lvx {
     f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
     f << ss.str();
     f.close();
-  }
-  
-  bool backup_files(const std::vector<std::string>& file_names,
-                    int unique_idx, int lvx_iterations) {
-    std::string fmt_str = std::string("%1$0") +
-      std::to_string(std::to_string(lvx_iterations).length()) + "d";
-    boost::format fmt(fmt_str);
-
-    fmt % unique_idx;
-    std::string folder_name = std::string("./RUN") + fmt.str();
-    std::cout << folder_name << "\n";
-
-    using namespace boost::filesystem;
-    
-    path p(folder_name);
-
-    if (!exists(p)) 
-      create_directory(p);
-    
-    for (const auto& file_name : file_names)
-      copy_file(path(std::string("./") + file_name),
-                path(folder_name + "/" + file_name),
-                copy_option::overwrite_if_exists);
-    return true;
   }
 
   std::set<int> predict_neighbors(std::string lammps_command, double cut_off_dist) {
@@ -156,57 +56,31 @@ namespace lvx {
                                   int max_vasp_nsw,
                                   int count_good_prev,
                                   int& NSW) {
-    std::string cmd = lammps_command + " -in predictor.in > /dev/null";
+    std::string cmd = lammps_command + " -in predictor.in";
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom, max_potential_switch,
                                  max_vasp_nsw, count_good_prev, NSW);
   }
 
-  void concat_POTCAR(simulation_cell& sim_cell) {
-    std::ofstream writer("POTCAR");
-    for (const auto& e : sim_cell.vasp_symbol_count_helper) {
-      if (std::get<1>(e) != 0) {
-        auto itr = std::find_if(sim_cell.elements_info.begin(),
-                                sim_cell.elements_info.end(),
-                                [&e] (std::shared_ptr<lvx::atomic_element_info> p) {
-                                  return (std::get<2>(e) ? p->vasp_symbol_good :
-                                                           p->vasp_symbol_bad) == std::get<0>(e);
-                                });
-        std::get<2>(e) ? (writer << (*itr)->vasp_potential_file_good) :
-                         (writer << (*itr)->vasp_potential_file_bad);
-      }
-    }
-    writer.close();
-  }
+  struct config_data {
+    std::string VASP_COMMAND;
+    std::string LAMMPS_COMMAND;
+    std::string INIT_POSCAR;
+    int         LVX_ITERATIONS;
+    std::string LAMMPS_POTENTIAL_FILE;
+    std::string LAMMPS_PAIR_STYLE;
 
-  std::vector<std::shared_ptr<lvx::atomic_element_info> >
-  create_atomic_catalog(std::map<std::string, std::string>& conf_data) {
-    std::vector<std::shared_ptr<lvx::atomic_element_info> > atomic_catalog;
+    quantity<angstrom_unit> POTENTIAL_DEPARTURE_DISTANCE;
+  
+    bool                       USE_ADAPTIVE_POTIM;
+    quantity<angstrom_unit>    MAX_DISTANCE;
+    quantity<femtosecond_unit> MAX_POTIM;
 
-    for (int i = 0; conf_data.find(std::string("ATOMIC_SYMBOL_") + std::to_string(i))
-           != conf_data.end(); ++i) {
-    
-      std::shared_ptr<lvx::atomic_element_info> aep(new lvx::atomic_element_info);
-
-      aep->symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
-      aep->mass   = std::stod(conf_data[std::string("ATOMIC_MASS_")   + std::to_string(i)]) * u;
-      aep->atom_type        = i+1;
-      aep->vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
-      aep->vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
-    
-      std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i)]);
-      aep->vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
-                                           std::istreambuf_iterator<char>());
-      f.close();
-      f.open(conf_data[std::string("VASP_POTENTIAL_FILE_BAD_") + std::to_string(i)]);
-      aep->vasp_potential_file_bad.assign((std::istreambuf_iterator<char>(f)),
-                                          std::istreambuf_iterator<char>());
-      f.close();
-      atomic_catalog.push_back(std::move(aep));
-    }
-    return atomic_catalog;
-  }
+    int MAX_POTENTIAL_SUBSTITUTIONS;
+    int MAX_VASP_NSW;
+  };
+  
 }
 
 void PRINT_SET(const std::set<int>& s) {
@@ -215,7 +89,9 @@ void PRINT_SET(const std::set<int>& s) {
   std::cout << "\n";
 }
 
-// #define DATADIR 
+// #define DATADIR
+
+
 
 int main(int argc, char *argv[]) {
 
@@ -226,30 +102,42 @@ int main(int argc, char *argv[]) {
   std::fstream f("lavax.conf");
   
   auto conf_data = lvx::parse_config_file(f);
+
+  lvx::config_data conf;
+  conf.VASP_COMMAND                 = conf_data["VASP_COMMAND"];
+  conf.LAMMPS_COMMAND               = conf_data["LAMMPS_COMMAND"];
+  conf.INIT_POSCAR                  = conf_data["INIT_POSCAR"];
+  conf.LVX_ITERATIONS               = std::stoi(conf_data["LVX_ITERATIONS"]);
+  conf.LAMMPS_POTENTIAL_FILE        = conf_data["LAMMPS_POTENTIAL_FILE"];
+  conf.LAMMPS_PAIR_STYLE            = conf_data["LAMMPS_PAIR_STYLE"];
+  conf.POTENTIAL_DEPARTURE_DISTANCE = std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]) * angstrom;
+  std::istringstream is(conf_data["USE_ADAPTIVE_POTIM"]);
+  is >> std::boolalpha >> conf.USE_ADAPTIVE_POTIM;
+  conf.MAX_DISTANCE                 = std::stod(conf_data["MAX_DISTANCE"]) * angstrom;
+  conf.MAX_POTIM                    = std::stod(conf_data["MAX_POTIM"]) * femtosecond;
+  conf.MAX_POTENTIAL_SUBSTITUTIONS  = std::stoi(conf_data["MAX_POTENTIAL_SUBSTITUTIONS"]);
+  conf.MAX_VASP_NSW                 = std::stoi(conf_data["MAX_VASP_NSW"]);
   
-  if (!lvx::init_check2(conf_data["INIT_POSCAR"])) {
+  if (!lvx::init_check2(conf.INIT_POSCAR)) {
     return false;
   }
-  
-  std::cout << lvx::get_mass_from_POTCAR() << "\n";
-
+    
   int NSW;
   quantity<femtosecond_unit> POTIM;
 
   lvx::parse_INCAR(NSW, POTIM);
   std::cout << NSW << " " << POTIM << "\n";
 
-  lvx::update_LAMMPS_script(conf_data["LAMMPS_POTENTIAL_FILE"],
-                            conf_data["LAMMPS_ATOMIC_SYMBOL_0"],
+  std::string lammps_atomic_symbols;
+  for (int i = 0; conf_data.find(std::string("LAMMPS_ATOMIC_SYMBOL_") + std::to_string(i))
+         != conf_data.end(); ++i) {
+    lammps_atomic_symbols += conf_data[std::string("LAMMPS_ATOMIC_SYMBOL_") + std::to_string(i)] + " ";
+  }
+
+  lvx::update_LAMMPS_script(conf.LAMMPS_POTENTIAL_FILE,
+                            lammps_atomic_symbols,
+                            conf_data["LAMMPS_PAIR_STYLE"],
                             NSW, POTIM);
-
-  int lvx_iterations = std::stoi(conf_data["LVX_ITERATIONS"]);
-
-  bool use_adaptive_timestep;
-  std::istringstream is(conf_data["USE_ADAPTIVE_POTIM"]);
-  is >> std::boolalpha >> use_adaptive_timestep;
-
-  auto v = lvx::parse_POTCAR();
 
   auto atomic_catalog = lvx::create_atomic_catalog(conf_data);
   
@@ -267,13 +155,10 @@ int main(int argc, char *argv[]) {
   std::cout << a2 << "\n";
   std::cout << a3 << "\n";
 
-  for (auto& e : sim_cell.particles)
-    std::cout << e.getPos() << "\n";
-
   int count_good_prev = 0;
   
-  for (int i = 0; i < lvx_iterations; ++i) {
-    if (use_adaptive_timestep) {
+  for (int i = 0; i < conf.LVX_ITERATIONS; ++i) {
+    if (conf.USE_ADAPTIVE_POTIM) {
       auto itr =
       std::max_element(sim_cell.particles.begin(),
                        sim_cell.particles.end(),
@@ -284,8 +169,7 @@ int main(int argc, char *argv[]) {
       lvx::vec3_velocity max_vel = itr->getVel();
       auto speed = lvx::norm(max_vel);
 
-      auto dt = std::min(std::stod(conf_data["MAX_DISTANCE"]) * angstrom / speed,
-                         std::stod(conf_data["MAX_POTIM"]) * femtosecond);
+      auto dt = std::min(conf.MAX_DISTANCE / speed, conf.MAX_POTIM);
 
       std::fstream f("INCAR");
       std::stringstream ss =
@@ -309,9 +193,9 @@ int main(int argc, char *argv[]) {
     writer.close();
 
     std::set<int> si = lvx::predict_neighbors(conf_data["LAMMPS_COMMAND"],
-                                              std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]),
-                                              std::stoi(conf_data["MAX_POTENTIAL_SUBSTITUTIONS"]),
-                                              std::stoi(conf_data["MAX_VASP_NSW"]),
+                                              conf.POTENTIAL_DEPARTURE_DISTANCE.value(),
+                                              conf.MAX_POTENTIAL_SUBSTITUTIONS,
+                                              conf.MAX_VASP_NSW,
                                               count_good_prev, NSW);
     count_good_prev = si.size();
     std::cout << "LAMMPS prediction DONE\n";
@@ -339,6 +223,8 @@ int main(int argc, char *argv[]) {
 
     lvx::concat_POTCAR(sim_cell);
 
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
     system(conf_data["VASP_COMMAND"].c_str());
     std::cout << "VASP run DONE\n";
 
@@ -351,8 +237,9 @@ int main(int argc, char *argv[]) {
                                       "OSZICAR", "PCDAT", "vasprun.xml",
                                       "OUTCAR", "INCAR", "WAVECAR",
                                       "IBZKPT", "POSCAR"};
-    lvx::backup_files(files, i, lvx_iterations);
+    lvx::backup_files(files, i, conf.LVX_ITERATIONS);
     std::cout << "--------------------\n";
+    std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 
   return 0;
