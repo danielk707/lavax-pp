@@ -20,7 +20,7 @@ make install
 ```
 
 ## TODO
-  * Implement LAMMPS script for multiple atomic species.
+  * ~~Implement LAMMPS script for multiple atomic species.~~
   * Test adaptive number of NSW steps.
   * Remove energy from system at simulation cell boundary.
 
