@@ -43,8 +43,12 @@ namespace lvx {
     f.close();
   }
 
-  std::set<int> predict_neighbors(std::string lammps_command, double cut_off_dist) {
-    std::string cmd = lammps_command + " -in predictor.in > /dev/null";
+  std::set<int> predict_neighbors(std::string lammps_command,
+                                  bool lammps_hide_output,
+                                  double cut_off_dist) {
+    
+    std::string cmd = lammps_command + " -in predictor.in" +
+      (lammps_hide_output ? " > /dev/null" : "");
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom);
@@ -52,11 +56,14 @@ namespace lvx {
 
   std::set<int> predict_neighbors(std::string lammps_command,
                                   double cut_off_dist,
+                                  bool lammps_hide_output,
                                   int max_potential_switch,
                                   int max_vasp_nsw,
                                   int count_good_prev,
                                   int& NSW) {
-    std::string cmd = lammps_command + " -in predictor.in";
+    
+    std::string cmd = lammps_command + " -in predictor.in" +
+      (lammps_hide_output ? " > /dev/null" : "");
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom, max_potential_switch,
@@ -79,6 +86,9 @@ namespace lvx {
 
     int MAX_POTENTIAL_SUBSTITUTIONS;
     int MAX_VASP_NSW;
+
+    bool LAMMPS_HIDE_OUTPUT;
+    bool VASP_HIDE_OUTPUT;
   };
   
 }
@@ -117,6 +127,12 @@ int main(int argc, char *argv[]) {
   conf.MAX_POTIM                    = std::stod(conf_data["MAX_POTIM"]) * femtosecond;
   conf.MAX_POTENTIAL_SUBSTITUTIONS  = std::stoi(conf_data["MAX_POTENTIAL_SUBSTITUTIONS"]);
   conf.MAX_VASP_NSW                 = std::stoi(conf_data["MAX_VASP_NSW"]);
+
+  is.str(conf_data["LAMMPS_HIDE_OUTPUT"]);
+  is >> std::boolalpha >> conf.LAMMPS_HIDE_OUTPUT;
+
+  is.str(conf_data["VASP_HIDE_OUTPUT"]);
+  is >> std::boolalpha >> conf.VASP_HIDE_OUTPUT;
   
   if (!lvx::init_check2(conf.INIT_POSCAR)) {
     return false;
@@ -194,6 +210,7 @@ int main(int argc, char *argv[]) {
 
     std::set<int> si = lvx::predict_neighbors(conf_data["LAMMPS_COMMAND"],
                                               conf.POTENTIAL_DEPARTURE_DISTANCE.value(),
+                                              conf.LAMMPS_HIDE_OUTPUT,
                                               conf.MAX_POTENTIAL_SUBSTITUTIONS,
                                               conf.MAX_VASP_NSW,
                                               count_good_prev, NSW);
@@ -202,19 +219,29 @@ int main(int argc, char *argv[]) {
     std::cout << "Neighbor index: ";
     PRINT_SET(si);
     std::cout << "NSW = " << NSW << "\n";
-    std::fstream f("INCAR");
-    std::stringstream ss =
-      lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
-                               std::string("NSW = ") + std::to_string(NSW));
-    f << ss.str(); f.close();
 
-    for (int j = 0; j < sim_cell.particles.size(); ++j) {
-      sim_cell.particles[j].high_prec = false;
-    }
+    std::fstream f("INCAR");
+    std::stringstream ss;
+    if (count_good_prev < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
+
+      ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
+                                    std::string("NSW = ") + std::to_string(NSW));
+      
+      for (int j = 0; j < sim_cell.particles.size(); ++j)
+        sim_cell.particles[j].high_prec = false;
     
-    for (auto j : si) {
-      sim_cell.particles[j-1].high_prec = true;
+      for (auto j : si)
+        sim_cell.particles[j-1].high_prec = true;
+
+    } else {
+      ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
+                                    std::string("NSW = ") + std::to_string(conf.MAX_VASP_NSW));
+      
+      for (int j = 0; j < sim_cell.particles.size(); ++j)
+        sim_cell.particles[j].high_prec = true;
+      
     }
+    f << ss.str(); f.close();
 
     writer.open("POSCAR");
     content = lvx::make_poscar(latt_const, a1, a2, a3, sim_cell);
@@ -225,7 +252,8 @@ int main(int argc, char *argv[]) {
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    system(conf_data["VASP_COMMAND"].c_str());
+    std::string cmd = conf_data["VASP_COMMAND"] + (conf.VASP_HIDE_OUTPUT ? " > /dev/null" : "");
+    system(cmd.c_str());
     std::cout << "VASP run DONE\n";
 
     std::ifstream contcar("CONTCAR");

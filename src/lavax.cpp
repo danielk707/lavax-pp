@@ -191,26 +191,6 @@ namespace lvx {
     while (std::getline(file, line)) {
       if (std::regex_match(line, std::regex(".*ITEM\\: ENTRIES c_distance\\[1\\] "
                                             "c_neigh\\[1\\] c_neigh\\[2\\].*"))) {
-      //   double r;
-      //   file >> r;
-
-      //   while (file.good()) {
-      //     if (r <= cutoff.value()) {
-      //       int i;
-      //       file >> i;
-      //       if (file.good()) indicies.insert(i);
-      //       int j;
-      //       file >> j;
-      //       if (file.good()) indicies.insert(j);
-      //     } else
-      //       break;
-      //     std::cout << r << " " << i << " " << j << "\n";
-      //     file >> r;
-      //   }
-      //   file.clear();
-      // }
-        
-        // std::cout << line << "\n";
         while (std::getline(file, line)) {
           std::smatch matches;
 
@@ -219,8 +199,6 @@ namespace lvx {
                           "(\\d+)\\s+(\\d+)");
 
           if (std::regex_search(line, matches, reg3)) {
-            // std::cout << line << "\n";
-            // std::cout << std::stod(matches[1]) << " "  << std::stoi(matches[2]) << " " << std::stoi(matches[3]) << "\n";
             if (std::stod(matches[1]) <= cutoff.value()) {
               indices.insert(std::stoi(matches[2]));
               indices.insert(std::stoi(matches[3]));
