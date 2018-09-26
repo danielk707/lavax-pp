@@ -18,6 +18,10 @@ make
 ```bash
 make install
 ```
+On some systems it might be necessary to include compiler flags for non-standard installation locations for boost/blitz:
+```bash
+make CXXFLAGS='-I/cfs/klemming/scratch/d/danielk5/local/include -L/cfs/klemming/scratch/d/danielk5/local/lib'
+```
 
 ## TODO
   * ~~Implement LAMMPS script for multiple atomic species.~~
@@ -41,14 +45,13 @@ MAX_TIMESTEP = 3   # Femtoseconds
 
 # Switching too many potentials may cause VASP to diverge:
 MAX_POTENTIAL_SUBSTITUTIONS = 3
-MAX_VASP_NSW = 10
+MAX_VASP_NSW = 10  # Maximum number of VASP timesteps before restart
 
 # The distance where the good and bad potentials starts to depart:
 POTENTIAL_DEPARTURE_DISTANCE = 2.0
 
 # List all the atomic elements in the simulation cell:
 ATOMIC_SYMBOL_0 = W
-ATOMIC_MASS_0   = 184.0
 VASP_POTENTIAL_FILE_GOOD_0   = POTCAR0_good # POTCAR will be concatenated
 VASP_POTENTIAL_FILE_BAD_0    = POTCAR0_bad  # from these.
 VASP_POTENTIAL_SYMBOL_GOOD_0 = Wsv
@@ -64,7 +67,7 @@ BCC Xx
 6.36000000 0.00000000 0.00000000
 0.00000000 6.36000000 0.00000000
 0.00000000 0.00000000 6.36000000
-W Wsv                             <- This line must not be omitted!
+W Ws                              <- This line must not be omitted!
 14 2
 Cartesian
 0.00000000 0.00000000 0.00000000

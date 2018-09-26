@@ -7,7 +7,8 @@
 pkgdata_DATA = lavax.conf predictor.in
 
 # AM_CPPFLAGS = -std=c++14 -lblitz -lm  -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
-AM_CPPFLAGS = -std=c++14 -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
+# AM_CXXFLAGS = -std=c++14 -fpermissive -lpthread -I/cfs/klemming/scratch/d/danielk5/local/include -L/cfs/klemming/scratch/d/danielk5/local/lib -I$BOOST_HOME/include -L$BOOST_HOME/lib -DDATADIR=\"$(pkgdatadir)\"
+AM_CXXFLAGS = -std=c++14 -fpermissive -lpthread -DDATADIR=\"$(pkgdatadir)\"
 # AM_CPPFLAGS = -std=c++1y -lblitz -lm  -fpermissive -lpthread -nostdlib -nostdinc -DDATADIR=\"/home/danielk5/share/lavax\"
 #AM_CPPFLAGS = -std=c++1y -fpermissive -DDATADIR=\"/home/danielk5/local/share/lavax\"
 #AM_LDFLAGS = -lboost_system -lboost_filesystem
@@ -24,15 +25,7 @@ lavax_SOURCES = main_lavax.cpp lavax.cpp init_check.cpp
 lavax_LDADD = -lboost_system -lboost_filesystem -lblitz -lm #-lpthread
 
 PKAvel_SOURCES = main_PKAvel.cpp
-#test2_SOURCES = test2.cpp
 # lavax_LDFLAGS = -lboost_system -lboost_filesystem
-
-# test1_SOURCES = test1.cpp
-# test2_SOURCES = test2.cpp
-# test3_SOURCES = test3.cpp
-# mkbcc_SOURCES = mkbcc.cpp qc.cpp qc.hpp
-
-# PKAvel_SOURCES = PKAvel.cpp
 
 # mklammps_data_SOURCES = mklammps_data.cpp qc.cpp qc.hpp
 

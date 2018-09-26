@@ -1,7 +1,8 @@
 
 SYSTEM = W Crystal
-NPAR = 4
+NPAR = 3
 NCORE = 32
+NSIM = 2
 
 ISTART = 0
 ISMEAR = 0
