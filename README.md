@@ -22,6 +22,12 @@ On some systems it might be necessary to include compiler flags for non-standard
 ```bash
 make CXXFLAGS='-I/cfs/klemming/scratch/d/danielk5/local/include -L/cfs/klemming/scratch/d/danielk5/local/lib'
 ```
+Alternatively, you can set the following shell variables:
+```bash
+export CPATH=/cfs/klemming/scratch/d/danielk5/local/include
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
+export LIBRARY_PATH=$LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
+```
 
 ## TODO
   * ~~Implement LAMMPS script for multiple atomic species.~~
