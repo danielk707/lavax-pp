@@ -25,7 +25,7 @@ make CXXFLAGS='-I/cfs/klemming/scratch/d/danielk5/local/include -L/cfs/klemming/
 
 ## TODO
   * ~~Implement LAMMPS script for multiple atomic species.~~
-  * Test adaptive number of NSW steps.
+  * ~~Test adaptive number of NSW steps.~~
   * Remove energy from system at simulation cell boundary.
 
 ## lavax.conf
