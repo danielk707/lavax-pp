@@ -54,7 +54,7 @@ POTENTIAL_DEPARTURE_DISTANCE = 2.0
 ATOMIC_SYMBOL_0 = W
 VASP_POTENTIAL_FILE_GOOD_0   = POTCAR0_good # POTCAR will be concatenated
 VASP_POTENTIAL_FILE_BAD_0    = POTCAR0_bad  # from these.
-VASP_POTENTIAL_SYMBOL_GOOD_0 = Wsv
+VASP_POTENTIAL_SYMBOL_GOOD_0 = Ws
 VASP_POTENTIAL_SYMBOL_BAD_0  = W
 LAMMPS_ATOMIC_SYMBOL_0       = W
 ```
@@ -74,3 +74,5 @@ Cartesian
 1.59000000 1.59000000 1.59000000
 ...
 ```
+## Caveats
+The symbols for the atomic elements (VASP_POTENTIAL_SYMBOL_GOOD_*) should not be more than two characters long due to a bug in VASP.
