@@ -75,4 +75,4 @@ Cartesian
 ...
 ```
 ## Caveats
-The symbols for the atomic elements (VASP_POTENTIAL_SYMBOL_GOOD_*) should not be more than two characters long due to a bug in VASP.
+The symbols for the atomic elements (VASP_POTENTIAL_SYMBOL_*) should not be more than two characters long due to a bug in VASP.
