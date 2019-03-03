@@ -104,19 +104,19 @@ namespace lvx {
   class atom_species {
   public:
     std::string symbol;
-    std::string vasp_good_pot;
-    std::string vasp_bad_pot;
+    std::string vasp_hard_pot;
+    std::string vasp_soft_pot;
     quantity<atomic_mass_unit> mass;
-    std::vector<Particle_v2> good_particles;
-    std::vector<Particle_v2> bad_particles;
+    std::vector<Particle_v2> hard_particles;
+    std::vector<Particle_v2> soft_particles;
   // public:
 
-  //   void set_good_potential(std::string buffer) {
-  //     vasp_good_pot = buffer;
+  //   void set_hard_potential(std::string buffer) {
+  //     vasp_hard_pot = buffer;
   //   }
 
-  //   void set_bad_potential(std::string buffer) {
-  //     vasp_bad_pot = buffer;
+  //   void set_soft_potential(std::string buffer) {
+  //     vasp_soft_pot = buffer;
   //   }
 
   //   void set_mass(quantity<atomic_mass_unit> mass) {
@@ -128,17 +128,17 @@ namespace lvx {
   class atomic_element {
   public:
     std::string symbol;
-    std::string vasp_symbol_good;
-    std::string vasp_symbol_bad;
-    std::string vasp_potential_file_good;
-    std::string vasp_potential_file_bad;
+    std::string vasp_symbol_hard;
+    std::string vasp_symbol_soft;
+    std::string vasp_potential_file_hard;
+    std::string vasp_potential_file_soft;
     // std::pair<int,int> vasp_indices;
-    int vasp_num_good;
-    int vasp_num_bad;
+    int vasp_num_hard;
+    int vasp_num_soft;
     quantity<atomic_mass_unit> mass;
     
     int number_atoms() {
-      return vasp_num_good + vasp_num_bad;
+      return vasp_num_hard + vasp_num_soft;
     }
     // int number_atoms() {
     //   return std::accumulate(vasp_indices.begin(),
@@ -160,7 +160,7 @@ namespace lvx {
     std::vector<atomic_element> elements;
     std::vector<Particle_v2>    particles;
 
-    // int index_by_vasp_good(std::string) {
+    // int index_by_vasp_hard(std::string) {
       
     // }
   };
@@ -366,9 +366,9 @@ namespace lvx {
 //   for (int i = 0; i < v.size()/2; i++) {
 
 //     lvx::atom_species a;
-//     a.vasp_good_pot = v[i];
-//     a.vasp_bad_pot  = v[i + v.size()/2];
-//     std::stringstream ss(a.vasp_good_pot);
+//     a.vasp_hard_pot = v[i];
+//     a.vasp_soft_pot  = v[i + v.size()/2];
+//     std::stringstream ss(a.vasp_hard_pot);
 
 //     std::string line;
 //     while (std::getline(ss, line)) {
@@ -381,7 +381,7 @@ namespace lvx {
 //       }
 //     }
 
-//     ss = std::stringstream(a.vasp_good_pot);
+//     ss = std::stringstream(a.vasp_hard_pot);
 
 //     while (std::getline(ss, line)) {
 //       std::regex rgx(".*VRHFIN\\s*=\\s*(\\w+)\\s*:.*");
@@ -411,8 +411,8 @@ namespace lvx {
 //   std::cout << a2 << "\n";
 //   std::cout << a3 << "\n";
 //   std::cout << "\n";
-//   // std::cout << w[1].bad_particles.size() << "\n";
-//   for (auto a : w[0].bad_particles) {
+//   // std::cout << w[1].soft_particles.size() << "\n";
+//   for (auto a : w[0].soft_particles) {
 //     std::cout << a.getPos() << "\n";
 //   }
 
@@ -422,15 +422,15 @@ namespace lvx {
 //   std::istringstream is(conf_data["USE_ADAPTIVE_TIMESTEP"]);
 //   is >> std::boolalpha >> USE_ADAPTIVE_TIMESTEP;
 
-//   std::cout << w[0].bad_particles[6].getVel() << "\n";
-//   // std::cout << abs(w[0].bad_particles[0].getVel())) << "\n";
+//   std::cout << w[0].soft_particles[6].getVel() << "\n";
+//   // std::cout << abs(w[0].soft_particles[0].getVel())) << "\n";
   
-//   for (int i = 0; i < std::stoi(conf_data["LVX_ITERATIONS"]); i++) {
+//   for (int i = 0; i < std::stoi(conf_data["LAVAX_ITERATIONS"]); i++) {
 //     if (USE_ADAPTIVE_TIMESTEP) {
 //       std::vector<Particle_v2> temp;
 //       for (auto a : w) {
-//         temp.insert(temp.begin(), a.bad_particles.begin(), a.bad_particles.end());
-//         temp.insert(temp.begin(), a.good_particles.begin(), a.good_particles.end());
+//         temp.insert(temp.begin(), a.soft_particles.begin(), a.soft_particles.end());
+//         temp.insert(temp.begin(), a.hard_particles.begin(), a.hard_particles.end());
 //       }
 //       auto max_vel = std::max_element(temp.begin(), temp.end(),
 //                                       [] (const Particle_v2& p1, const Particle_v2& p2) {

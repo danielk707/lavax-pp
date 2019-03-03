@@ -59,10 +59,10 @@ namespace lvx {
   public:
     std::string symbol;
     int         atom_type;
-    std::string vasp_symbol_good;
-    std::string vasp_symbol_bad;
-    std::string vasp_potential_file_good;
-    std::string vasp_potential_file_bad;
+    std::string vasp_symbol_hard;
+    std::string vasp_symbol_soft;
+    std::string vasp_potential_file_hard;
+    std::string vasp_potential_file_soft;
     quantity<atomic_mass_unit> mass;
   };
 
@@ -70,7 +70,7 @@ namespace lvx {
   public:
     atomic_particle(vec3_angstrom pos, vec3_velocity vel) : Particle(pos,vel) {}
     std::shared_ptr<atomic_element_info> element_info;
-    bool high_prec = false;
+    bool is_hard = false;
   };
 
   class simulation_cell {
@@ -133,7 +133,7 @@ namespace lvx {
                                       quantity<angstrom_unit> cutoff,
                                       int max_potential_switch,
                                       int max_vasp_nsw,
-                                      int count_good_prev,
+                                      int count_hard_prev,
                                       int& NSW);
   
   std::string make_lammps_data(quantity<angstrom_unit> xhi,
@@ -164,7 +164,7 @@ namespace lvx {
                                         std::string replacement);
 
   bool backup_files(const std::vector<std::string>& file_names,
-                    int unique_idx, int lvx_iterations);
+                    int unique_idx, int lavax_iterations);
   
   // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
   //                      const vec3_dimless& dir,

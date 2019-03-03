@@ -275,7 +275,7 @@ namespace lvx {
     int k = 0;
     for (int i = 0; i < num_atom_species.size(); ++i) {
       for (int j = k; j < k+num_atom_species[i]; ++j) {
-        P[i].bad_particles.emplace_back(pos_vec[j], vel_vec[j]);
+        P[i].soft_particles.emplace_back(pos_vec[j], vel_vec[j]);
       }
       k += num_atom_species[i];
     }
@@ -302,8 +302,8 @@ namespace lvx {
     std::map<std::string,int> dict;
 
     for (int i = 0; i < sim_cell.elements.size(); ++i) {
-      dict[sim_cell.elements[i].vasp_symbol_good] = i;
-      dict[sim_cell.elements[i].vasp_symbol_bad] = i;
+      dict[sim_cell.elements[i].vasp_symbol_hard] = i;
+      dict[sim_cell.elements[i].vasp_symbol_soft] = i;
     }
 
     std::vector<std::string> vasp_symbols;
@@ -345,11 +345,11 @@ namespace lvx {
     
     int j = 0;
     for (auto s : vasp_symbols) {
-      if (s == sim_cell.elements[dict[s]].vasp_symbol_bad) {
-        sim_cell.elements[dict[s]].vasp_num_bad = num_atom_species[j];
+      if (s == sim_cell.elements[dict[s]].vasp_symbol_soft) {
+        sim_cell.elements[dict[s]].vasp_num_soft = num_atom_species[j];
       }
-      else if (s == sim_cell.elements[dict[s]].vasp_symbol_good) {
-        sim_cell.elements[dict[s]].vasp_num_good = num_atom_species[j];
+      else if (s == sim_cell.elements[dict[s]].vasp_symbol_hard) {
+        sim_cell.elements[dict[s]].vasp_num_hard = num_atom_species[j];
       }
       ++j;
     }
@@ -453,7 +453,7 @@ namespace lvx {
     int num_part = 0;
     std::for_each(P.begin(), P.end(),
                   [&num_part] (const atom_species& a) {
-                    num_part += a.bad_particles.size() + a.good_particles.size();
+                    num_part += a.soft_particles.size() + a.hard_particles.size();
                   });
 
     ss << num_part << " atoms\n";
@@ -471,12 +471,12 @@ namespace lvx {
     ss << "\nAtoms\n\n";
     int k = 1;
     for (int i = 0; i < P.size(); i++) {
-      for (int j = 0; j < P[i].bad_particles.size(); ++j) {
-        ss << k << " " << i+1 << " " << P[i].bad_particles[j].getPos() << "\n";
+      for (int j = 0; j < P[i].soft_particles.size(); ++j) {
+        ss << k << " " << i+1 << " " << P[i].soft_particles[j].getPos() << "\n";
         k++;
       }
-      for (int j = 0; j < P[i].good_particles.size(); ++j) {
-        ss << k << " " << i+1 << " " << P[i].good_particles[j].getPos() << "\n";
+      for (int j = 0; j < P[i].hard_particles.size(); ++j) {
+        ss << k << " " << i+1 << " " << P[i].hard_particles[j].getPos() << "\n";
         k++;
       }
     }
@@ -486,12 +486,12 @@ namespace lvx {
 
       k = 1;
       for (int i = 0; i < P.size(); i++) {
-        for (int j = 0; j < P[i].bad_particles.size(); ++j) {
-          ss << k << " " << P[i].bad_particles[j].getVel() << "\n";
+        for (int j = 0; j < P[i].soft_particles.size(); ++j) {
+          ss << k << " " << P[i].soft_particles[j].getVel() << "\n";
           k++;
         }
-        for (int j = 0; j < P[i].good_particles.size(); ++j) {
-          ss << k << " " << P[i].good_particles[j].getVel() << "\n";
+        for (int j = 0; j < P[i].hard_particles.size(); ++j) {
+          ss << k << " " << P[i].hard_particles[j].getVel() << "\n";
           k++;
         }
       }

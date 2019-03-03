@@ -59,7 +59,7 @@ namespace lvx {
                                   bool lammps_hide_output,
                                   int max_potential_switch,
                                   int max_vasp_nsw,
-                                  int count_good_prev,
+                                  int count_hard_prev,
                                   int& NSW) {
     
     std::string cmd = lammps_command + " -in predictor.in" +
@@ -67,14 +67,14 @@ namespace lvx {
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom, max_potential_switch,
-                                 max_vasp_nsw, count_good_prev, NSW);
+                                 max_vasp_nsw, count_hard_prev, NSW);
   }
 
   struct config_data {
     std::string VASP_COMMAND;
     std::string LAMMPS_COMMAND;
     std::string INIT_POSCAR;
-    int         LVX_ITERATIONS;
+    int         LAVAX_ITERATIONS;
     std::string LAMMPS_POTENTIAL_FILE;
     std::string LAMMPS_PAIR_STYLE;
 
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
   conf.VASP_COMMAND                 = conf_data["VASP_COMMAND"];
   conf.LAMMPS_COMMAND               = conf_data["LAMMPS_COMMAND"];
   conf.INIT_POSCAR                  = conf_data["INIT_POSCAR"];
-  conf.LVX_ITERATIONS               = std::stoi(conf_data["LVX_ITERATIONS"]);
+  conf.LAVAX_ITERATIONS             = std::stoi(conf_data["LAVAX_ITERATIONS"]);
   conf.LAMMPS_POTENTIAL_FILE        = conf_data["LAMMPS_POTENTIAL_FILE"];
   conf.LAMMPS_PAIR_STYLE            = conf_data["LAMMPS_PAIR_STYLE"];
   conf.POTENTIAL_DEPARTURE_DISTANCE = std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]) * angstrom;
@@ -171,9 +171,9 @@ int main(int argc, char *argv[]) {
   std::cout << a2 << "\n";
   std::cout << a3 << "\n";
 
-  int count_good_prev = 0;
+  int count_hard_prev = 0;
   
-  for (int i = 0; i < conf.LVX_ITERATIONS; ++i) {
+  for (int i = 0; i < conf.LAVAX_ITERATIONS; ++i) {
     if (conf.USE_ADAPTIVE_POTIM) {
       auto itr =
       std::max_element(sim_cell.particles.begin(),
@@ -191,12 +191,16 @@ int main(int argc, char *argv[]) {
       std::stringstream ss =
         lvx::replace_all_in_file(f, std::regex(".*POTIM.*"),
                                      std::string("POTIM = ") + std::to_string(dt.value()));
+      f.close();
+      f.open("INCAR", std::fstream::in | std::fstream::out | std::fstream::trunc);
       f << ss.str(); f.close();
       f.open("predictor.in");
       ss = lvx::replace_all_in_file(f,  std::regex("^timestep.*"),
                                         std::string("timestep ") + std::to_string(dt.value()/5));
       ss = lvx::replace_all_in_file(ss, std::regex(".*run.*"),
                                          std::string("run ") + std::to_string((NSW+3)*5));
+      f.close();
+      f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
       f << ss.str(); f.close();
       std::cout << "POTIM = " << dt << "\n";
     }
@@ -213,8 +217,8 @@ int main(int argc, char *argv[]) {
                                               conf.LAMMPS_HIDE_OUTPUT,
                                               conf.MAX_POTENTIAL_SUBSTITUTIONS,
                                               conf.MAX_VASP_NSW,
-                                              count_good_prev, NSW);
-    count_good_prev = si.size();
+                                              count_hard_prev, NSW);
+    count_hard_prev = si.size();
     std::cout << "LAMMPS prediction DONE\n";
     std::cout << "Neighbor index: ";
     PRINT_SET(si);
@@ -222,7 +226,7 @@ int main(int argc, char *argv[]) {
 
     std::fstream f("INCAR");
     std::stringstream ss;
-    if (count_good_prev < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
+    if (count_hard_prev < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
 
       ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
                                     std::string("NSW = ") + std::to_string(NSW));
@@ -265,7 +269,7 @@ int main(int argc, char *argv[]) {
                                       "OSZICAR", "PCDAT", "vasprun.xml",
                                       "OUTCAR", "INCAR", "WAVECAR",
                                       "IBZKPT", "POSCAR"};
-    lvx::backup_files(files, i, conf.LVX_ITERATIONS);
+    lvx::backup_files(files, i, conf.LAVAX_ITERATIONS);
     std::cout << "--------------------\n";
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }

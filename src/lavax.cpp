@@ -31,23 +31,23 @@ namespace lvx {
 
     std::vector<std::tuple<std::string,int,bool> > symbols_count;
     for (auto e : sim_cell.elements_info) {
-      int num_bad = 
+      int num_soft = 
       std::count_if(sim_cell.particles.cbegin(),
                     sim_cell.particles.cend(),
                     [&e] (const atomic_particle& a) {
-                      return (a.element_info->vasp_symbol_bad == e->vasp_symbol_bad) &&
-                        !a.high_prec;
+                      return (a.element_info->vasp_symbol_soft == e->vasp_symbol_soft) &&
+                        !a.is_hard;
                     });
 
-      int num_good = 
+      int num_hard = 
       std::count_if(sim_cell.particles.cbegin(),
                     sim_cell.particles.cend(),
                     [&e] (const atomic_particle& a) {
-                      return (a.element_info->vasp_symbol_good == e->vasp_symbol_good) &&
-                        a.high_prec;
+                      return (a.element_info->vasp_symbol_hard == e->vasp_symbol_hard) &&
+                        a.is_hard;
                     });
-      symbols_count.push_back(std::make_tuple(e->vasp_symbol_bad,  num_bad,  false));
-      symbols_count.push_back(std::make_tuple(e->vasp_symbol_good, num_good, true));      
+      symbols_count.push_back(std::make_tuple(e->vasp_symbol_soft, num_soft, false));
+      symbols_count.push_back(std::make_tuple(e->vasp_symbol_hard, num_hard, true));      
     }
 
     for (const auto& sc : symbols_count) {
@@ -67,9 +67,9 @@ namespace lvx {
 
     for (const auto& sc : symbols_count) {
       for (const auto& p : sim_cell.particles) {
-        if        ( std::get<2>(sc) &&  p.high_prec && p.element_info->vasp_symbol_good == std::get<0>(sc)) {
+        if        ( std::get<2>(sc) &&  p.is_hard && p.element_info->vasp_symbol_hard == std::get<0>(sc)) {
           ss << p.getPos() << "\n";
-        } else if (!std::get<2>(sc) && !p.high_prec && p.element_info->vasp_symbol_bad  == std::get<0>(sc)) {
+        } else if (!std::get<2>(sc) && !p.is_hard && p.element_info->vasp_symbol_soft == std::get<0>(sc)) {
           ss << p.getPos() << "\n";
         }
       }
@@ -78,9 +78,9 @@ namespace lvx {
     ss << "\n";
     for (const auto& sc : symbols_count) {
       for (const auto& p : sim_cell.particles) {
-        if        ( std::get<2>(sc) &&  p.high_prec && p.element_info->vasp_symbol_good == std::get<0>(sc)) {
+        if        ( std::get<2>(sc) &&  p.is_hard && p.element_info->vasp_symbol_hard == std::get<0>(sc)) {
           ss << p.getVel() << "\n";
-        } else if (!std::get<2>(sc) && !p.high_prec && p.element_info->vasp_symbol_bad  == std::get<0>(sc)) {
+        } else if (!std::get<2>(sc) && !p.is_hard && p.element_info->vasp_symbol_soft == std::get<0>(sc)) {
           ss << p.getVel() << "\n";
         }
       }
@@ -180,7 +180,7 @@ namespace lvx {
                                       quantity<angstrom_unit> cutoff,
                                       int max_potential_switch,
                                       int max_vasp_nsw,
-                                      int count_good_prev,
+                                      int count_hard_prev,
                                       int& NSW) {
     std::set<int> indices;
     // int iteration;
@@ -202,7 +202,7 @@ namespace lvx {
             if (std::stod(matches[1]) <= cutoff.value()) {
               indices.insert(std::stoi(matches[2]));
               indices.insert(std::stoi(matches[3]));
-              if (abs(static_cast<int>(indices.size())-count_good_prev) >= max_potential_switch)
+              if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
                 return indices;
             }
           } else
@@ -222,7 +222,7 @@ namespace lvx {
           // std::cout << NSW << "\n";
         }
       }
-      // if (abs(static_cast<int>(indices.size())-count_good_prev) >= max_potential_switch)
+      // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
       //   break;
     }
     return indices;
@@ -256,8 +256,8 @@ namespace lvx {
     std::map<std::string,std::pair<int, bool>> dict;
 
     for (int i = 0; i < sim_cell.elements_info.size(); ++i) {
-      dict[sim_cell.elements_info[i]->vasp_symbol_good] = std::make_pair(i,false);
-      dict[sim_cell.elements_info[i]->vasp_symbol_bad]  = std::make_pair(i,true);
+      dict[sim_cell.elements_info[i]->vasp_symbol_hard] = std::make_pair(i,false);
+      dict[sim_cell.elements_info[i]->vasp_symbol_soft] = std::make_pair(i,true);
     }
 
     std::vector<std::string> vasp_symbols;
@@ -340,7 +340,7 @@ namespace lvx {
       }
         
       p.element_info = sim_cell.elements_info[dict[vasp_symbols[k]].first];
-      p.high_prec    = dict[vasp_symbols[k]].second;
+      p.is_hard    = dict[vasp_symbols[k]].second;
       sim_cell.particles.push_back(p);
       // sim_cell.particles.emplace_back(pos_vec[i], vel_vec[i]);
     }
@@ -454,11 +454,11 @@ namespace lvx {
         auto itr = std::find_if(sim_cell.elements_info.begin(),
                                 sim_cell.elements_info.end(),
                                 [&e] (std::shared_ptr<lvx::atomic_element_info> p) {
-                                  return (std::get<2>(e) ? p->vasp_symbol_good :
-                                                           p->vasp_symbol_bad) == std::get<0>(e);
+                                  return (std::get<2>(e) ? p->vasp_symbol_hard :
+                                                           p->vasp_symbol_soft) == std::get<0>(e);
                                 });
-        std::get<2>(e) ? (writer << (*itr)->vasp_potential_file_good) :
-                         (writer << (*itr)->vasp_potential_file_bad);
+        std::get<2>(e) ? (writer << (*itr)->vasp_potential_file_hard) :
+                         (writer << (*itr)->vasp_potential_file_soft);
       }
     }
     writer.close();
@@ -476,18 +476,18 @@ namespace lvx {
       aep->symbol           = conf_data[std::string("ATOMIC_SYMBOL_") + std::to_string(i)];
       // aep->mass   = std::stod(conf_data[std::string("ATOMIC_MASS_")   + std::to_string(i)]) * u;
       aep->atom_type        = i+1;
-      aep->vasp_symbol_good = conf_data[std::string("VASP_POTENTIAL_SYMBOL_GOOD_") + std::to_string(i)];
-      aep->vasp_symbol_bad  = conf_data[std::string("VASP_POTENTIAL_SYMBOL_BAD_")  + std::to_string(i)];
+      aep->vasp_symbol_hard = conf_data[std::string("VASP_POTENTIAL_SYMBOL_HARD_") + std::to_string(i)];
+      aep->vasp_symbol_soft = conf_data[std::string("VASP_POTENTIAL_SYMBOL_SOFT_") + std::to_string(i)];
     
-      std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_GOOD_")  + std::to_string(i)]);
-      aep->vasp_potential_file_good.assign((std::istreambuf_iterator<char>(f)),
+      std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_HARD_")  + std::to_string(i)]);
+      aep->vasp_potential_file_hard.assign((std::istreambuf_iterator<char>(f)),
+                                            std::istreambuf_iterator<char>());
+      f.close();
+      f.open(conf_data[std::string("VASP_POTENTIAL_FILE_SOFT_") + std::to_string(i)]);
+      aep->vasp_potential_file_soft.assign((std::istreambuf_iterator<char>(f)),
                                            std::istreambuf_iterator<char>());
       f.close();
-      f.open(conf_data[std::string("VASP_POTENTIAL_FILE_BAD_") + std::to_string(i)]);
-      aep->vasp_potential_file_bad.assign((std::istreambuf_iterator<char>(f)),
-                                          std::istreambuf_iterator<char>());
-      f.close();
-      std::istringstream iss(aep->vasp_potential_file_bad);
+      std::istringstream iss(aep->vasp_potential_file_soft);
       aep->mass = get_mass_from_POTCAR(iss);
       atomic_catalog.push_back(std::move(aep));
     }
@@ -514,9 +514,9 @@ namespace lvx {
   }
 
   bool backup_files(const std::vector<std::string>& file_names,
-                    int unique_idx, int lvx_iterations) {
+                    int unique_idx, int lavax_iterations) {
     std::string fmt_str = std::string("%1$0") +
-      std::to_string(std::to_string(lvx_iterations).length()) + "d";
+      std::to_string(std::to_string(lavax_iterations).length()) + "d";
     boost::format fmt(fmt_str);
 
     fmt % unique_idx;
