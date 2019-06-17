@@ -27,7 +27,7 @@ namespace lvx {
   // ------------------------------------------------------------
   bool init_check2(const std::string& init_poscar) {
     using namespace boost::filesystem;
-    std::vector<std::string> files = {"INCAR", "KPOINTS", "POTCAR"};
+    std::vector<std::string> files = {"INCAR", "KPOINTS"};
     files.push_back(init_poscar);
 
     bool success = true;

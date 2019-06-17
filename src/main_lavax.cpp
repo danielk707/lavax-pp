@@ -33,10 +33,14 @@ namespace lvx {
     // ss.seekg(0);
     ss = replace_all_in_file(ss, std::regex("pair_style.*"),
       std::string("pair_style ") + lammps_pair_style);
+    // ss = replace_all_in_file(ss, std::regex("run.*"),
+    //   std::string("run ") + std::to_string((vasp_nsw+3)*5));
+    // ss = replace_all_in_file(ss, std::regex("timestep.*"),
+    //   std::string("timestep ") + std::to_string(vasp_potim.value()/5));
     ss = replace_all_in_file(ss, std::regex("run.*"),
-      std::string("run ") + std::to_string((vasp_nsw+3)*5));
+      std::string("run ") + std::to_string(vasp_nsw));
     ss = replace_all_in_file(ss, std::regex("timestep.*"),
-      std::string("timestep ") + std::to_string(vasp_potim.value()/5));
+      std::string("timestep ") + std::to_string(vasp_potim.value()));
     f.close();
     f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
     f << ss.str();
@@ -141,8 +145,11 @@ int main(int argc, char *argv[]) {
   int NSW;
   quantity<femtosecond_unit> POTIM;
 
-  lvx::parse_INCAR(NSW, POTIM);
-  std::cout << NSW << " " << POTIM << "\n";
+  if (!lvx::parse_INCAR(NSW, POTIM)) {
+    std::cerr << "Failed to parse INCAR!" << "\n";
+    std::cerr << "... must contain fields NSW and POTIM" << std::endl;
+  }
+  std::cout << "NSW = " << NSW << ", POTIM = " << POTIM << std::endl;
 
   std::string lammps_atomic_symbols;
   for (int i = 0; conf_data.find(std::string("LAMMPS_ATOMIC_SYMBOL_") + std::to_string(i))
@@ -153,7 +160,7 @@ int main(int argc, char *argv[]) {
   lvx::update_LAMMPS_script(conf.LAMMPS_POTENTIAL_FILE,
                             lammps_atomic_symbols,
                             conf_data["LAMMPS_PAIR_STYLE"],
-                            NSW, POTIM);
+                            conf.MAX_VASP_NSW, POTIM);
 
   auto atomic_catalog = lvx::create_atomic_catalog(conf_data);
   
@@ -169,7 +176,7 @@ int main(int argc, char *argv[]) {
   std::cout << latt_const << "\n";
   std::cout << a1 << "\n";
   std::cout << a2 << "\n";
-  std::cout << a3 << "\n";
+  std::cout << a3 << std::endl;
 
   int count_hard_prev = 0;
   
@@ -195,10 +202,14 @@ int main(int argc, char *argv[]) {
       f.open("INCAR", std::fstream::in | std::fstream::out | std::fstream::trunc);
       f << ss.str(); f.close();
       f.open("predictor.in");
+      // ss = lvx::replace_all_in_file(f,  std::regex("^timestep.*"),
+      //                                   std::string("timestep ") + std::to_string(dt.value()/5));
+      // ss = lvx::replace_all_in_file(ss, std::regex(".*run.*"),
+      //                                    std::string("run ") + std::to_string((NSW+3)*5));
       ss = lvx::replace_all_in_file(f,  std::regex("^timestep.*"),
-                                        std::string("timestep ") + std::to_string(dt.value()/5));
+                                        std::string("timestep ") + std::to_string(dt.value()));
       ss = lvx::replace_all_in_file(ss, std::regex(".*run.*"),
-                                         std::string("run ") + std::to_string((NSW+3)*5));
+                                         std::string("run ") + std::to_string(conf.MAX_VASP_NSW));
       f.close();
       f.open("predictor.in", std::fstream::in | std::fstream::out | std::fstream::trunc);
       f << ss.str(); f.close();
@@ -219,10 +230,10 @@ int main(int argc, char *argv[]) {
                                               conf.MAX_VASP_NSW,
                                               count_hard_prev, NSW);
     count_hard_prev = si.size();
-    std::cout << "LAMMPS prediction DONE\n";
+    std::cout << "LAMMPS prediction DONE" << std::endl;
     std::cout << "Neighbor index: ";
     PRINT_SET(si);
-    std::cout << "NSW = " << NSW << "\n";
+    std::cout << "NSW = " << NSW << std::endl;
 
     std::fstream f("INCAR");
     std::stringstream ss;
@@ -232,19 +243,20 @@ int main(int argc, char *argv[]) {
                                     std::string("NSW = ") + std::to_string(NSW));
       
       for (int j = 0; j < sim_cell.particles.size(); ++j)
-        sim_cell.particles[j].high_prec = false;
+        sim_cell.particles[j].is_hard = false;
     
       for (auto j : si)
-        sim_cell.particles[j-1].high_prec = true;
+        sim_cell.particles[j-1].is_hard = true;
 
     } else {
       ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
                                     std::string("NSW = ") + std::to_string(conf.MAX_VASP_NSW));
       
       for (int j = 0; j < sim_cell.particles.size(); ++j)
-        sim_cell.particles[j].high_prec = true;
-      
+        sim_cell.particles[j].is_hard = true;
     }
+    f.close();
+    f.open("INCAR", std::fstream::in | std::fstream::out | std::fstream::trunc);
     f << ss.str(); f.close();
 
     writer.open("POSCAR");
@@ -258,7 +270,7 @@ int main(int argc, char *argv[]) {
 
     std::string cmd = conf_data["VASP_COMMAND"] + (conf.VASP_HIDE_OUTPUT ? " > /dev/null" : "");
     system(cmd.c_str());
-    std::cout << "VASP run DONE\n";
+    std::cout << "VASP run DONE" << std::endl;
 
     std::ifstream contcar("CONTCAR");
     lvx::parse_poscar(contcar, latt_const, a1, a2, a3, sim_cell);
@@ -270,7 +282,7 @@ int main(int argc, char *argv[]) {
                                       "OUTCAR", "INCAR", "WAVECAR",
                                       "IBZKPT", "POSCAR"};
     lvx::backup_files(files, i, conf.LAVAX_ITERATIONS);
-    std::cout << "--------------------\n";
+    std::cout << "--------------------" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 

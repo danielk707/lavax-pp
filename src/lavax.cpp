@@ -189,6 +189,19 @@ namespace lvx {
     // std::cout << cutoff.value() << "\n";
 
     while (std::getline(file, line)) {
+      if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
+        std::getline(file, line);
+        std::smatch matches;
+
+        // std::cout << line << "\n";
+
+        if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
+          NSW = std::stoi(matches[1]);
+          if (NSW >= max_vasp_nsw)
+            break;
+          // std::cout << NSW << "\n";
+        }
+      }
       if (std::regex_match(line, std::regex(".*ITEM\\: ENTRIES c_distance\\[1\\] "
                                             "c_neigh\\[1\\] c_neigh\\[2\\].*"))) {
         while (std::getline(file, line)) {
@@ -207,19 +220,6 @@ namespace lvx {
             }
           } else
             break;
-        }
-      }
-      if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
-        std::getline(file, line);
-        std::smatch matches;
-
-        // std::cout << line << "\n";
-
-        if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
-          NSW = std::stoi(matches[1]);
-          if (NSW >= max_vasp_nsw)
-            break;
-          // std::cout << NSW << "\n";
         }
       }
       // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
