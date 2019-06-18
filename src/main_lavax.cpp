@@ -173,6 +173,7 @@ int main(int argc, char *argv[]) {
   
   lvx::parse_poscar(init_poscar, latt_const, a1, a2, a3, sim_cell);
 
+  // using namespace lvx;
   std::cout << latt_const << "\n";
   std::cout << a1 << "\n";
   std::cout << a2 << "\n";
@@ -216,9 +217,9 @@ int main(int argc, char *argv[]) {
       std::cout << "POTIM = " << dt << "\n";
     }
     std::ofstream writer("W_crystal.dat");
-    std::string content = lvx::make_lammps_data(latt_const * a1(0),
-                                                latt_const * a2(1),
-                                                latt_const * a3(2),
+    std::string content = lvx::make_lammps_data(latt_const*a1[0],
+                                                latt_const*a2[1],
+                                                latt_const*a3[2],
                                                 sim_cell);
     writer << content;
     writer.close();

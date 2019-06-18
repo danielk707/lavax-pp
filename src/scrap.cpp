@@ -592,4 +592,33 @@ namespace lvx {
     std::stringstream ss(line);
     return read_vec3_angstrom(ss);
   }
+
+  vec3_angstrom transform(const quantity<angstrom_unit>& lattice_constant,
+                          const vec3_dimless& a1,
+                          const vec3_dimless& a2,
+                          const vec3_dimless& a3,
+                          const vec3_dimless& v) {
+    
+    blitz::TinyMatrix<quantity<si::dimensionless>, 3, 3> A;
+    blitz::TinyVector<quantity<angstrom_unit>,1> L;
+    L = lattice_constant;
+    
+    A = a1(0), a2(0), a3(0),
+        a1(1), a2(1), a3(1),
+        a1(2), a2(2), a3(2);
+
+    // std::cout << A << "\n";
+    
+    // using namespace blitz::tensor;
+    blitz::firstIndex i;
+    blitz::secondIndex j;
+    auto temp = blitz::sum(A(i,j)*v(j), j);
+
+    vec3_angstrom rtn;
+    rtn[0] = temp(0) * lattice_constant;
+    rtn[1] = temp(1) * lattice_constant;
+    rtn[2] = temp(2) * lattice_constant;
+
+    return rtn;
+  }
 }

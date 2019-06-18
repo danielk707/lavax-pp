@@ -6,7 +6,7 @@ AC_INIT([lavax], [0.1], [danielk5@kth.se])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-m4_include([m4/ac_check_blitz.m4])
+dnl m4_include([m4/ac_check_blitz.m4])
 dnl m4_include([m4/boost.m4])
 dnl m4_include([m4/ax_cxx_check_lib.m4])
 dnl m4_include([m4/ax_boost_base.m4])
@@ -16,7 +16,11 @@ dnl m4_include([m4/ax_boost_filesystem.m4])
 dnl AC_LIB_LINKFLAGS([boost_system])
 dnl AC_LIB_LINKFLAGS([boost_filesystem])
 dnl AC_LIB_LINKFLAGS([blitzz])
-AC_CHECK_BLITZ([],[AC_MSG_ERROR_BLITZ])
+
+
+dnl AC_CHECK_BLITZ([],[AC_MSG_ERROR_BLITZ])
+
+
 
 AM_INIT_AUTOMAKE([foreign])
 dnl AC_CONFIG_SRCDIR([src])

@@ -96,9 +96,9 @@ namespace lvx {
     auto& L = lattice_constant;
     
     vec3_velocity zero_vel;
-    zero_vel = 0.0 * angstrom_per_fs,
-               0.0 * angstrom_per_fs,
-               0.0 * angstrom_per_fs;
+    zero_vel[0] = 0.0 * angstrom_per_fs,
+    zero_vel[1] = 0.0 * angstrom_per_fs,
+    zero_vel[2] = 0.0 * angstrom_per_fs;
 
     std::vector<Particle> P;
     
@@ -107,8 +107,8 @@ namespace lvx {
       for (int i = 0; i < I; ++i) {
         for (int j = 0; j < J; ++j) {
           for (int k = 0; k < K; ++k) {
-            P.emplace_back(vec3_angstrom(L*(i+0.0), L*(j+0.0), L*(k+0.0)), zero_vel);
-            P.emplace_back(vec3_angstrom(L*(i+0.5), L*(j+0.5), L*(k+0.5)), zero_vel);
+            P.emplace_back(vec3_angstrom({L*(i+0.0), L*(j+0.0), L*(k+0.0)}), zero_vel);
+            P.emplace_back(vec3_angstrom({L*(i+0.5), L*(j+0.5), L*(k+0.5)}), zero_vel);
           }
         }
       }
@@ -122,26 +122,10 @@ namespace lvx {
                           const vec3_dimless& a2,
                           const vec3_dimless& a3,
                           const vec3_dimless& v) {
-    
-    blitz::TinyMatrix<quantity<si::dimensionless>, 3, 3> A;
-    blitz::TinyVector<quantity<angstrom_unit>,1> L;
-    L = lattice_constant;
-    
-    A = a1(0), a2(0), a3(0),
-        a1(1), a2(1), a3(1),
-        a1(2), a2(2), a3(2);
-
-    // std::cout << A << "\n";
-    
-    // using namespace blitz::tensor;
-    blitz::firstIndex i;
-    blitz::secondIndex j;
-    auto temp = blitz::sum(A(i,j)*v(j), j);
-
     vec3_angstrom rtn;
-    rtn[0] = temp(0) * lattice_constant;
-    rtn[1] = temp(1) * lattice_constant;
-    rtn[2] = temp(2) * lattice_constant;
+    rtn[0] = (a1[0]*v[0] + a2[0]*v[1] + a3[0]*v[2]) * lattice_constant;
+    rtn[1] = (a1[1]*v[0] + a2[1]*v[1] + a3[1]*v[2]) * lattice_constant;
+    rtn[2] = (a1[2]*v[0] + a2[2]*v[1] + a3[2]*v[2]) * lattice_constant;
 
     return rtn;
   }
@@ -189,19 +173,7 @@ namespace lvx {
     // std::cout << cutoff.value() << "\n";
 
     while (std::getline(file, line)) {
-      if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
-        std::getline(file, line);
-        std::smatch matches;
 
-        // std::cout << line << "\n";
-
-        if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
-          NSW = std::stoi(matches[1]);
-          if (NSW >= max_vasp_nsw)
-            break;
-          // std::cout << NSW << "\n";
-        }
-      }
       if (std::regex_match(line, std::regex(".*ITEM\\: ENTRIES c_distance\\[1\\] "
                                             "c_neigh\\[1\\] c_neigh\\[2\\].*"))) {
         while (std::getline(file, line)) {
@@ -213,6 +185,7 @@ namespace lvx {
 
           if (std::regex_search(line, matches, reg3)) {
             if (std::stod(matches[1]) <= cutoff.value()) {
+              std::cout << "parse_lammps_neighbor: " << std::stod(matches[1]) << " " << cutoff.value() << "\n";
               indices.insert(std::stoi(matches[2]));
               indices.insert(std::stoi(matches[3]));
               if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
@@ -224,6 +197,19 @@ namespace lvx {
       }
       // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
       //   break;
+      if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
+        std::getline(file, line);
+        std::smatch matches;
+
+        // std::cout << line << "\n";
+
+        if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
+          NSW = std::stoi(matches[1]);
+          if (NSW >= max_vasp_nsw)
+            break;
+          std::cout << "parse_lammps_neighbor: " << NSW << "\n";
+        }
+      }
     }
     return indices;
   }

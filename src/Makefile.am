@@ -22,7 +22,8 @@ bin_PROGRAMS = lavax PKAvel
 # unit_test_LDADD = -lboost_system -lboost_filesystem
 
 lavax_SOURCES = main_lavax.cpp lavax.cpp init_check.cpp
-lavax_LDADD = -lboost_system -lboost_filesystem -lblitz -lm #-lpthread
+lavax_LDADD = -lboost_system -lboost_filesystem #-lpthread
+# lavax_LDADD = -lboost_system -lboost_filesystem -lblitz -lm #-lpthread
 
 PKAvel_SOURCES = main_PKAvel.cpp
 # lavax_LDFLAGS = -lboost_system -lboost_filesystem

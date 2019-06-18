@@ -15,9 +15,9 @@ int main(int argc, char *argv[])
   quantity<atomic_mass_unit> m = std::stod(argv[1]) * u;
 
   vec3_dimless dir;
-  dir = std::stod(argv[2]),
-        std::stod(argv[3]),
-        std::stod(argv[4]);
+  dir[0] = std::stod(argv[2]),
+  dir[1] = std::stod(argv[3]),
+  dir[2] = std::stod(argv[4]);
 
   quantity<electronvolt_unit> Ek = std::stod(argv[5]) * eV;
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
   v = v / norm(dir);
 
-  vec3_velocity vel(v*dir[0], v*dir[1], v*dir[2]);
+  vec3_velocity vel({v*dir[0], v*dir[1], v*dir[2]});
 
   std::cout << vel << "\n";
   return 0;

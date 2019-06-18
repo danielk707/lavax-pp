@@ -1,7 +1,7 @@
 # lavax++
 LAmmps VAsp eXchanger, written in C++.
 
-Dependencies for compilation are <code>boost</code> and <code>blitz++</code>.
+Dependencies for compilation are <code>boost</code>.
 
 To compile lavax first run
 ```bash
