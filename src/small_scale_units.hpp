@@ -13,8 +13,6 @@
 // #include <boost/units/cmath.hpp>
 #include <boost/units/base_units/us/pound.hpp>
 
-#include <blitz/array.h>
-
 // typedef boost::units::us::pound_base_unit::unit_type pound_unit;
 // BOOST_UNITS_DEFINE_CONVERSION_FACTOR(pound_unit, boost::units::si::mass, float, 2.2f);
 
