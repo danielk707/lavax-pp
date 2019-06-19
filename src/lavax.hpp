@@ -141,11 +141,11 @@ namespace lvx {
   }
   
   // Ugly, but works for our purposes:
-  template<typename U>
-  quantity<U>
-  norm(blitz::TinyVector<quantity<U>,3> v) {
-    return sqrt((v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).value()) * (typename U::unit());
-  }
+  // template<typename U>
+  // quantity<U>
+  // norm(blitz::TinyVector<quantity<U>,3> v) {
+  //   return sqrt((v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).value()) * (typename U::unit());
+  // }
 
   template<typename U>
   quantity<U>
