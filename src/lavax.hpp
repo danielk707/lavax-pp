@@ -84,8 +84,7 @@ namespace lvx {
 
   class simulation_cell {
   public:
-    std::vector<std::shared_ptr<lvx::atomic_element_info> >
-                                 elements_info;
+    std::vector<std::shared_ptr<lvx::atomic_element_info> > elements_info;
     std::vector<atomic_particle> particles;
     std::vector<std::tuple<std::string,int,bool> > vasp_symbol_count_helper;
     // int index_by_vasp_good(std::string) {

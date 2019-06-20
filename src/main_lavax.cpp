@@ -14,6 +14,7 @@
 #include <boost/units/systems/si/length.hpp>
 #include <boost/units/systems/si/io.hpp>
 #include <boost/units/base_units/metric/angstrom.hpp>
+#include <boost/filesystem.hpp>
 #include "lavax.hpp"
 #include "parse_config_file.hpp"
 #include "init_check.hpp"
@@ -180,6 +181,7 @@ int main(int argc, char *argv[]) {
   std::cout << a3 << std::endl;
 
   int count_hard_prev = 0;
+  bool deleted_prev = false;
   
   for (int i = 0; i < conf.LAVAX_ITERATIONS; ++i) {
     if (conf.USE_ADAPTIVE_POTIM) {
@@ -238,7 +240,7 @@ int main(int argc, char *argv[]) {
 
     std::fstream f("INCAR");
     std::stringstream ss;
-    if (count_hard_prev < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
+    if (static_cast<int>(si.size()) < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
 
       ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
                                     std::string("NSW = ") + std::to_string(NSW));
@@ -249,13 +251,28 @@ int main(int argc, char *argv[]) {
       for (auto j : si)
         sim_cell.particles[j-1].is_hard = true;
 
+      deleted_prev = false;
     } else {
       ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
                                     std::string("NSW = ") + std::to_string(conf.MAX_VASP_NSW));
       
       for (int j = 0; j < sim_cell.particles.size(); ++j)
         sim_cell.particles[j].is_hard = true;
+
+      if (deleted_prev != true) {
+        namespace bf =  boost::filesystem;
+
+        bf::path p("WAVECAR");
+
+        if (bf::remove(p))
+          std::cout << "REMOVED WAVECAR"  << "\n";
+        else
+          std::cout << "FAILED TO REMOVE WAVECAR" << "\n";
+
+        deleted_prev = true;
+      }
     }
+    
     f.close();
     f.open("INCAR", std::fstream::in | std::fstream::out | std::fstream::trunc);
     f << ss.str(); f.close();
@@ -280,8 +297,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> files = {"XDATCAR", "CONTCAR", "CHG",
                                       "CHGCAR", "DOSCAR", "EIGENVAL",
                                       "OSZICAR", "PCDAT", "vasprun.xml",
-                                      "OUTCAR", "INCAR", "WAVECAR",
-                                      "IBZKPT", "POSCAR"};
+                                      "OUTCAR", "INCAR", "IBZKPT", "POSCAR"};
     lvx::backup_files(files, i, conf.LAVAX_ITERATIONS);
     std::cout << "--------------------" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(2));

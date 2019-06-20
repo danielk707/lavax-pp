@@ -160,6 +160,60 @@ namespace lvx {
     return indicies;
   }
 
+  // std::set<int> parse_lammps_neighbor(std::ifstream& file,
+  //                                     quantity<angstrom_unit> cutoff,
+  //                                     int max_potential_switch,
+  //                                     int max_vasp_nsw,
+  //                                     int count_hard_prev,
+  //                                     int& NSW) {
+  //   std::set<int> indices;
+  //   // int iteration;
+  //   std::string line;
+
+  //   // std::cout << cutoff.value() << "\n";
+
+  //   while (std::getline(file, line)) {
+
+  //     if (std::regex_match(line, std::regex(".*ITEM\\: ENTRIES c_distance\\[1\\] "
+  //                                           "c_neigh\\[1\\] c_neigh\\[2\\].*"))) {
+  //       while (std::getline(file, line)) {
+  //         std::smatch matches;
+
+  //         // Regex for floating point number:
+  //         std::regex reg3("([+-]?(?=[.]?[0-9])[0-9]*(?:[.][0-9]*)?(?:[Ee][+-]?[0-9]+)?)\\s+"
+  //                         "(\\d+)\\s+(\\d+)");
+
+  //         if (std::regex_search(line, matches, reg3)) {
+  //           if (std::stod(matches[1]) <= cutoff.value()) {
+  //             // std::cout << "parse_lammps_neighbor: " << std::stod(matches[1]) << " " << cutoff.value() << "\n";
+  //             indices.insert(std::stoi(matches[2]));
+  //             indices.insert(std::stoi(matches[3]));
+  //             if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
+  //               return indices;
+  //           }
+  //         } else
+  //           break;
+  //       }
+  //     }
+  //     // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
+  //     //   break;
+  //     if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
+  //       std::getline(file, line);
+  //       std::smatch matches;
+
+  //       // std::cout << line << "\n";
+
+  //       if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
+  //         NSW = std::stoi(matches[1]);
+  //         if (NSW >= max_vasp_nsw)
+  //           break;
+  //         // std::cout << "parse_lammps_neighbor: " << NSW << "\n";
+  //       }
+  //     }
+  //   }
+  //   return indices;
+  // }
+
   std::set<int> parse_lammps_neighbor(std::ifstream& file,
                                       quantity<angstrom_unit> cutoff,
                                       int max_potential_switch,
@@ -167,10 +221,8 @@ namespace lvx {
                                       int count_hard_prev,
                                       int& NSW) {
     std::set<int> indices;
-    // int iteration;
     std::string line;
-
-    // std::cout << cutoff.value() << "\n";
+    // NSW = 0;
 
     while (std::getline(file, line)) {
 
@@ -185,31 +237,28 @@ namespace lvx {
 
           if (std::regex_search(line, matches, reg3)) {
             if (std::stod(matches[1]) <= cutoff.value()) {
-              std::cout << "parse_lammps_neighbor: " << std::stod(matches[1]) << " " << cutoff.value() << "\n";
               indices.insert(std::stoi(matches[2]));
               indices.insert(std::stoi(matches[3]));
-              if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
-                return indices;
             }
           } else
             break;
         }
       }
-      // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch)
-      //   break;
+
+      // if (abs(static_cast<int>(indices.size())-count_hard_prev) >= max_potential_switch && NSW != 0)
+        // return indices;
+      
       if (std::regex_match(line, std::regex("ITEM\\: TIMESTEP.*"))) {
         std::getline(file, line);
         std::smatch matches;
-
-        // std::cout << line << "\n";
 
         if (std::regex_search(line, matches, std::regex("(\\d+)"))) {
           NSW = std::stoi(matches[1]);
           if (NSW >= max_vasp_nsw)
             break;
-          std::cout << "parse_lammps_neighbor: " << NSW << "\n";
         }
       }
+
     }
     return indices;
   }
