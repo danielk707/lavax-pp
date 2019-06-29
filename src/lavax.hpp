@@ -80,6 +80,7 @@ namespace lvx {
     atomic_particle(vec3_angstrom pos, vec3_velocity vel) : Particle(pos,vel) {}
     std::shared_ptr<atomic_element_info> element_info;
     bool is_hard = false;
+    int idx = -1;
   };
 
   class simulation_cell {
@@ -87,6 +88,8 @@ namespace lvx {
     std::vector<std::shared_ptr<lvx::atomic_element_info> > elements_info;
     std::vector<atomic_particle> particles;
     std::vector<std::tuple<std::string,int,bool> > vasp_symbol_count_helper;
+    std::vector<int> poscar_part_order;
+    std::set<int>    lammps_selected_idx;
     // int index_by_vasp_good(std::string) {
       
     // }
@@ -171,7 +174,6 @@ namespace lvx {
                                       quantity<angstrom_unit> cutoff,
                                       int max_potential_switch,
                                       int max_vasp_nsw,
-                                      int count_hard_prev,
                                       int& NSW);
   
   std::string make_lammps_data(quantity<angstrom_unit> xhi,

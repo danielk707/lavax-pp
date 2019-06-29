@@ -54,6 +54,6 @@ dnl BOOST_SYSTEM
 dnl BOOST_THREAD
 dnl BOOST_FILESYSTEM([p])
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile])
 
 AC_OUTPUT

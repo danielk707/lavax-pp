@@ -65,12 +65,15 @@ namespace lvx {
     ss << "\n";
     ss << "Cartesian\n";
 
+    sim_cell.poscar_part_order.clear();
     for (const auto& sc : symbols_count) {
       for (const auto& p : sim_cell.particles) {
         if        ( std::get<2>(sc) &&  p.is_hard && p.element_info->vasp_symbol_hard == std::get<0>(sc)) {
           ss << p.getPos() << "\n";
+          sim_cell.poscar_part_order.push_back(p.idx);
         } else if (!std::get<2>(sc) && !p.is_hard && p.element_info->vasp_symbol_soft == std::get<0>(sc)) {
           ss << p.getPos() << "\n";
+          sim_cell.poscar_part_order.push_back(p.idx);
         }
       }
     }
@@ -218,7 +221,6 @@ namespace lvx {
                                       quantity<angstrom_unit> cutoff,
                                       int max_potential_switch,
                                       int max_vasp_nsw,
-                                      int count_hard_prev,
                                       int& NSW) {
     std::set<int> indices;
     std::string line;
@@ -237,8 +239,8 @@ namespace lvx {
 
           if (std::regex_search(line, matches, reg3)) {
             if (std::stod(matches[1]) <= cutoff.value()) {
-              indices.insert(std::stoi(matches[2]));
-              indices.insert(std::stoi(matches[3]));
+              indices.insert(std::stoi(matches[2])-1);
+              indices.insert(std::stoi(matches[3])-1);
             }
           } else
             break;
@@ -366,17 +368,29 @@ namespace lvx {
         break;
     }
     
-    sim_cell.particles.clear();
+    //sim_cell.particles.clear();
+
+    bool is_empty = sim_cell.particles.empty();
     int k = 0;
     for (int i = 0; i < pos_vec.size(); i++) {
-      atomic_particle p(pos_vec[i], vel_vec[i]);
       if (i >= indices[k]) {
         ++k;
       }
-        
-      p.element_info = sim_cell.elements_info[dict[vasp_symbols[k]].first];
-      p.is_hard    = dict[vasp_symbols[k]].second;
-      sim_cell.particles.push_back(p);
+      
+      if (is_empty) {
+        atomic_particle p(pos_vec[i], vel_vec[i]);
+        p.element_info = sim_cell.elements_info[dict[vasp_symbols[k]].first];
+        p.is_hard      = dict[vasp_symbols[k]].second;
+        p.idx          = i;
+        sim_cell.particles.push_back(p);
+      } else {
+        auto p    = sim_cell.particles[sim_cell.poscar_part_order[i]];
+        p.pos     = pos_vec[i];
+        p.vel     = vel_vec[i];
+        p.is_hard = dict[vasp_symbols[k]].second;
+        sim_cell.particles[sim_cell.poscar_part_order[i]] = p;
+      }
+      
       // sim_cell.particles.emplace_back(pos_vec[i], vel_vec[i]);
     }
   }

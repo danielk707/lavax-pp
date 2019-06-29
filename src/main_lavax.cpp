@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <iterator>
 #include <regex>
 #include <thread>
 #include <chrono>
@@ -64,7 +65,6 @@ namespace lvx {
                                   bool lammps_hide_output,
                                   int max_potential_switch,
                                   int max_vasp_nsw,
-                                  int count_hard_prev,
                                   int& NSW) {
     
     std::string cmd = lammps_command + " -in predictor.in" +
@@ -72,7 +72,7 @@ namespace lvx {
     system(cmd.c_str());
     std::ifstream f("neigh.dump");
     return parse_lammps_neighbor(f, cut_off_dist * angstrom, max_potential_switch,
-                                 max_vasp_nsw, count_hard_prev, NSW);
+                                 max_vasp_nsw, NSW);
   }
 
   struct config_data {
@@ -180,7 +180,6 @@ int main(int argc, char *argv[]) {
   std::cout << a2 << "\n";
   std::cout << a3 << std::endl;
 
-  int count_hard_prev = 0;
   bool deleted_prev = false;
   
   for (int i = 0; i < conf.LAVAX_ITERATIONS; ++i) {
@@ -231,16 +230,21 @@ int main(int argc, char *argv[]) {
                                               conf.LAMMPS_HIDE_OUTPUT,
                                               conf.MAX_POTENTIAL_SUBSTITUTIONS,
                                               conf.MAX_VASP_NSW,
-                                              count_hard_prev, NSW);
-    count_hard_prev = si.size();
+                                              NSW);
     std::cout << "LAMMPS prediction DONE" << std::endl;
     std::cout << "Neighbor index: ";
     PRINT_SET(si);
     std::cout << "NSW = " << NSW << std::endl;
 
+    std::set<int> diff;
+    std::set_difference(si.begin(), si.end(),
+                        sim_cell.lammps_selected_idx.begin(), sim_cell.lammps_selected_idx.end(),
+                        std::inserter(diff, diff.end()));
+    sim_cell.lammps_selected_idx = si;
+
     std::fstream f("INCAR");
     std::stringstream ss;
-    if (static_cast<int>(si.size()) < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
+    if (diff.size() < conf.MAX_POTENTIAL_SUBSTITUTIONS) {
 
       ss = lvx::replace_all_in_file(f, std::regex(".*NSW.*"),
                                     std::string("NSW = ") + std::to_string(NSW));
@@ -249,7 +253,7 @@ int main(int argc, char *argv[]) {
         sim_cell.particles[j].is_hard = false;
     
       for (auto j : si)
-        sim_cell.particles[j-1].is_hard = true;
+        sim_cell.particles[j].is_hard = true;
 
       deleted_prev = false;
     } else {
@@ -259,7 +263,7 @@ int main(int argc, char *argv[]) {
       for (int j = 0; j < sim_cell.particles.size(); ++j)
         sim_cell.particles[j].is_hard = true;
 
-      if (deleted_prev != true) {
+      if (!deleted_prev) {
         namespace bf =  boost::filesystem;
 
         bf::path p("WAVECAR");
