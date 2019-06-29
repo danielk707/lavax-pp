@@ -1,11 +1,17 @@
 
-PDFTEX = pdflatex -shell-escape
+if HAVE_PDFLATEX
 
-lvxman_PDF = lavax-manual.pdf
+  PDFTEX = pdflatex -shell-escape
 
-# DOC_TARGETS = $(lvxman_PDF)
+  lvxman_PDF = lavax-manual.pdf
 
-pdf_DATA = $(lvxman_PDF)
+  # DOC_TARGETS = $(lvxman_PDF)
 
-$(lvxman_PDF) : lavax-manual.tex
+
+  pdf_DATA = $(lvxman_PDF)
+
+
+  $(lvxman_PDF) : lavax-manual.tex
 	$(PDFTEX) lavax-manual.tex
+
+endif

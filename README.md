@@ -1,12 +1,6 @@
 # lavax++
 LAmmps VAsp eXchanger, written in C++.
 
-Make the manual via
-```bash
-make pdf
-```
-for a comprehensive guide.
-
 Dependencies for compilation are <code>boost</code>.
 
 To compile lavax first run
@@ -34,6 +28,11 @@ export CPATH=$CPATH:/cfs/klemming/scratch/d/danielk5/local/include
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
 export LIBRARY_PATH=$LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
 ```
+Make the manual via
+```bash
+make pdf
+```
+for a comprehensive guide.
 
 ## TODO
   * ~~Implement LAMMPS script for multiple atomic species.~~

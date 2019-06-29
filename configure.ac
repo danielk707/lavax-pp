@@ -40,6 +40,13 @@ dnl AC_SEARCH_LIBS([chmod], [boost_filesystem])
 ${CXXFLAGS=""}
 AC_PROG_CXX
 
+AC_CHECK_PROG(PDFLATEX, pdflatex, pdflatex)
+if test -z "$PDFLATEX"; then
+  AC_MSG_WARN([Unable to create PDF version of the user manual.])
+fi
+
+AM_CONDITIONAL([HAVE_PDFLATEX], test -n "$PDFLATEX")
+
 dnl AC_LANG_PUSH([C++])
 dnl AX_BOOST_BASE([1.48], [], [])
 dnl AX_BOOST_SYSTEM
