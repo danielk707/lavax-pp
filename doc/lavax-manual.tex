@@ -4,7 +4,6 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{caption}
-\usepackage{wrapfig}
 \usepackage{float}
 \usepackage{verbatim}
 \usepackage{amsmath}
@@ -15,7 +14,7 @@
 \usepackage{bm}
 \usepackage{makecell}
 \usepackage{mathrsfs}
-\usepackage{minted}
+% \usepackage{minted}
 
 \makeatletter
 \renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
@@ -74,45 +73,45 @@ Lavax requires
 
 \subsection{Compilation and installation}
 To compile lavax, first generate the configure script:
-\begin{minted}{text}
+\begin{verbatim}
    autoreconf -i 
-\end{minted}
+\end{verbatim}
 Configure the environment and generate makefiles:
-\begin{minted}{text}
+\begin{verbatim}
    ./configure --prefix=/desired/install/directory
-\end{minted}
+\end{verbatim}
 where \texttt{/desired/install/directory} is replaced by the location you want to install lavax if you don't like the default location.
 \newline \\
 Then build lavax with
-\begin{minted}{text}
+\begin{verbatim}
    make
-\end{minted}
+\end{verbatim}
 and install using
-\begin{minted}{text}
+\begin{verbatim}
    make install
-\end{minted}
+\end{verbatim}
 If boost is installed in a non-standard directory or is not included in the search path you can set this manually with either
-\begin{minted}{text}
+\begin{verbatim}
    make CXXFLAGS='-I/cfs/klemming/scratch/d/danielk5/local/include
                   -L/cfs/klemming/scratch/d/danielk5/local/lib'
-\end{minted}
+\end{verbatim}
 or by setting the following shell variables
-\begin{minted}{text}
+\begin{verbatim}
    export CPATH=$CPATH:/cfs/klemming/scratch/d/danielk5/local/include
    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
    export LIBRARY_PATH=$LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
-\end{minted}
+\end{verbatim}
 
 \subsubsection{Manual static build}
 On some systems it might be necessary to switch between different compilers and build environments, in which case lavax may fail to run. In this case compilation can be done manually to statically link the stdc++ library and boost system/filesystem library:
-\begin{minted}{text}
+\begin{verbatim}
    g++ src/main_lavax.cpp src/lavax.cpp src/init_check.cpp -std=c++14 -fpermissive
        -static-libstdc++ -static-libgcc
        -DDATADIR=\"/desired/install/directory/share/lavax\"
        -I/marconi/home/userexternal/danielk5/local/include
        -L/marconi/home/userexternal/danielk5/local/lib
        -lpthread -Wl,-Bstatic -lboost_system -lboost_filesystem -Wl,-Bdynamic -o lavax
-\end{minted}
+\end{verbatim}
 The executable then have to copied manually to the desired install directory.      
 
 \section{Running Lavax}
@@ -131,7 +130,7 @@ Before running lavax, the user should create a directory to run lavax in, contai
 \subsection{lavax.conf}
 \label{sec:lavax_conf}
 Lavax must be configured according to the following file which must be placed in the directory where lavax is run:
-\begin{minted}{text}
+\begin{verbatim}
 VASP_COMMAND    = mpirun -np 32 vasp533_mpi
 LAMMPS_COMMAND  = lmp_serial
 INIT_POSCAR     = POSCAR_init
@@ -159,11 +158,8 @@ VASP_POTENTIAL_FILE_SOFT_0   = POTCAR0_soft
 VASP_POTENTIAL_SYMBOL_HARD_0 = Ws
 VASP_POTENTIAL_SYMBOL_SOFT_0 = W
 LAMMPS_ATOMIC_SYMBOL_0       = W
-\end{minted}
+\end{verbatim}
 The possible flags in lavax.conf are described in Table~\ref{tab:1}.
-\begin{minted}{text}
-$
-\end{minted}
 
 \rowcolors{2}{gray!25}{white}
 \begin{table}[H]
@@ -200,7 +196,7 @@ where $v_{\text{max}}$ is the maximum speed among all atoms in the crystal, \tex
 
 \subsection{\texttt{INIT\_POSCAR}}
 The initial POSCAR must contain a line with the potential symbols, as specified in the lavax.conf file.
-\begin{minted}{text}
+\begin{verbatim}
 BCC Xx 
 1.0
 6.36000000 0.00000000 0.00000000
@@ -212,7 +208,7 @@ Cartesian
 0.00000000 0.00000000 0.00000000
 1.59000000 1.59000000 1.59000000
 ...
-\end{minted}
+\end{verbatim}
 
 \textit{Note: } The symbols for the atomic elements (\texttt{VASP\_POTENTIAL\_SYMBOL\_*}) should not be more than two characters long due to a bug in VASP.
 
