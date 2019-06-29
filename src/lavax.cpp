@@ -99,8 +99,8 @@ namespace lvx {
     auto& L = lattice_constant;
     
     vec3_velocity zero_vel;
-    zero_vel[0] = 0.0 * angstrom_per_fs,
-    zero_vel[1] = 0.0 * angstrom_per_fs,
+    zero_vel[0] = 0.0 * angstrom_per_fs;
+    zero_vel[1] = 0.0 * angstrom_per_fs;
     zero_vel[2] = 0.0 * angstrom_per_fs;
 
     std::vector<Particle> P;
