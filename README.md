@@ -30,7 +30,7 @@ export LIBRARY_PATH=$LIBRARY_PATH:/cfs/klemming/scratch/d/danielk5/local/lib
 ```
 Make the manual via
 ```bash
-make pdf
+make lavax-manual
 ```
 for a comprehensive guide.
 

@@ -13,7 +13,7 @@
 \usepackage{fancyhdr}
 \usepackage{bm}
 % \usepackage{makecell}
-\usepackage{mathrsfs}
+% \usepackage{mathrsfs}
 % \usepackage{minted}
 
 \makeatletter
@@ -194,6 +194,7 @@ A larger timestep will then suffice. We can use an adaptive time step $\Delta t$
 \end{equation*}
 where $v_{\text{max}}$ is the maximum speed among all atoms in the crystal, \texttt{MAX\_DISTANCE} is the maximum tolerated distance any atom may travel during one ionic step and \texttt{MAX\_TIMESTEP} is the maximum tolerated time step so that we don't select an unfeasibly large time step.
 
+\newpage
 \subsection{\texttt{INIT\_POSCAR}}
 The initial POSCAR must contain a line with the potential symbols, as specified in the lavax.conf file.
 \begin{verbatim}
