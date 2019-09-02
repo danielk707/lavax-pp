@@ -49,8 +49,12 @@ INIT_POSCAR     = POSCAR_init         # File describing the initial crystal stat
 LAVAX_ITERATIONS  = 70                # Number of internal LAVAX iterations.
 LAMMPS_POTENTIAL_FILE = W_BN.eam.fs
 
+LAMMPS_HIDE_OUTPUT = false
+VASP_HIDE_OUTPUT   = false
+REFORMAT_XDATCAR   = true
+
 # Options for adaptive timestep in VASP and LAMMPS:
-USE_ADAPTIVE_TIMESTEP = true
+USE_ADAPTIVE_POTIM = true
 MAX_DISTANCE = 0.1 # Angstroms
 MAX_TIMESTEP = 3   # Femtoseconds
 
