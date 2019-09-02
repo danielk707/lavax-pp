@@ -94,6 +94,7 @@ namespace lvx {
 
     bool LAMMPS_HIDE_OUTPUT;
     bool VASP_HIDE_OUTPUT;
+    bool REFORMAT_XDATCAR;
   };
   
 }
@@ -103,10 +104,6 @@ void PRINT_SET(const std::set<int>& s) {
     std::cout << e << " ";
   std::cout << "\n";
 }
-
-// #define DATADIR
-
-
 
 int main(int argc, char *argv[]) {
 
@@ -138,6 +135,9 @@ int main(int argc, char *argv[]) {
 
   is.str(conf_data["VASP_HIDE_OUTPUT"]);
   is >> std::boolalpha >> conf.VASP_HIDE_OUTPUT;
+
+  is.str(conf_data["REFORMAT_XDATCAR"]);
+  is >> std::boolalpha >> conf.REFORMAT_XDATCAR;
   
   if (!lvx::init_check2(conf.INIT_POSCAR)) {
     return false;
@@ -293,6 +293,41 @@ int main(int argc, char *argv[]) {
     std::string cmd = conf_data["VASP_COMMAND"] + (conf.VASP_HIDE_OUTPUT ? " > /dev/null" : "");
     system(cmd.c_str());
     std::cout << "VASP run DONE" << std::endl;
+
+    // ----------------------------------------
+
+    if (conf.REFORMAT_XDATCAR) {
+      std::string str1 = "\\s*";
+      std::string str2;
+      std::string str3;
+    
+      for (const auto& e : sim_cell.vasp_symbol_count_helper) {
+        if (std::get<1>(e) != 0) {
+          str1 += std::get<0>(e) + "\\s*";
+        }
+        str2 += std::get<0>(e) + " ";
+        str3 += std::to_string(std::get<1>(e)) + " ";
+      }
+    
+      f.open("XDATCAR");
+      ss.str("");
+    
+      std::regex  rgx(str1);
+      std::string line;
+      while (std::getline(f, line)) {
+        if (std::regex_match(line, rgx)) {
+          ss << std::regex_replace(line, rgx, str2) << "\n";
+          std::getline(f, line);
+          ss << str3 << "\n";
+        } else
+          ss << line << "\n";
+      }
+
+      f.close();
+      f.open("XDATCAR", std::fstream::in | std::fstream::out | std::fstream::trunc);
+      f << ss.str();
+      f.close();
+    }
 
     std::ifstream contcar("CONTCAR");
     lvx::parse_poscar(contcar, latt_const, a1, a2, a3, sim_cell);

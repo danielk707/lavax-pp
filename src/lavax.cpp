@@ -47,7 +47,7 @@ namespace lvx {
                         a.is_hard;
                     });
       symbols_count.push_back(std::make_tuple(e->vasp_symbol_soft, num_soft, false));
-      symbols_count.push_back(std::make_tuple(e->vasp_symbol_hard, num_hard, true));      
+      symbols_count.push_back(std::make_tuple(e->vasp_symbol_hard, num_hard, true));
     }
 
     for (const auto& sc : symbols_count) {
@@ -65,29 +65,22 @@ namespace lvx {
     ss << "\n";
     ss << "Cartesian\n";
 
+    std::stringstream sv;
+    
     sim_cell.poscar_part_order.clear();
     for (const auto& sc : symbols_count) {
       for (const auto& p : sim_cell.particles) {
-        if        ( std::get<2>(sc) &&  p.is_hard && p.element_info->vasp_symbol_hard == std::get<0>(sc)) {
+        if ((p.is_hard ? p.element_info->vasp_symbol_hard :
+                         p.element_info->vasp_symbol_soft) == std::get<0>(sc)) {
           ss << p.getPos() << "\n";
+          sv << p.getVel() << "\n";
           sim_cell.poscar_part_order.push_back(p.idx);
-        } else if (!std::get<2>(sc) && !p.is_hard && p.element_info->vasp_symbol_soft == std::get<0>(sc)) {
-          ss << p.getPos() << "\n";
-          sim_cell.poscar_part_order.push_back(p.idx);
-        }
+        } 
       }
     }
-
     ss << "\n";
-    for (const auto& sc : symbols_count) {
-      for (const auto& p : sim_cell.particles) {
-        if        ( std::get<2>(sc) &&  p.is_hard && p.element_info->vasp_symbol_hard == std::get<0>(sc)) {
-          ss << p.getVel() << "\n";
-        } else if (!std::get<2>(sc) && !p.is_hard && p.element_info->vasp_symbol_soft == std::get<0>(sc)) {
-          ss << p.getVel() << "\n";
-        }
-      }
-    }
+    ss << sv.str();
+
     sim_cell.vasp_symbol_count_helper.assign(symbols_count.begin(),
                                              symbols_count.end());
     return ss.str();
@@ -274,10 +267,15 @@ namespace lvx {
     double L;
     poscar >> L;
     
-    lattice_constant = L * angstrom;
+    // lattice_constant = L * angstrom;
     a1 = read_vec3(poscar, dimensionless);
     a2 = read_vec3(poscar, dimensionless);
     a3 = read_vec3(poscar, dimensionless);
+
+    a1 = {a1[0]*L, a1[1]*L, a1[2]*L};
+    a2 = {a2[0]*L, a2[1]*L, a2[2]*L};
+    a3 = {a3[0]*L, a3[1]*L, a3[2]*L};
+    lattice_constant = 1.0 * angstrom;
   }
 
   void parse_poscar(std::ifstream& poscar,
@@ -289,12 +287,14 @@ namespace lvx {
     
     _parse_poscar_header(poscar, lattice_constant, a1, a2, a3);
 
+    bool is_empty = sim_cell.particles.empty();
+    
     // std::smatch matches;
     std::map<std::string,std::pair<int, bool>> dict;
 
     for (int i = 0; i < sim_cell.elements_info.size(); ++i) {
-      dict[sim_cell.elements_info[i]->vasp_symbol_hard] = std::make_pair(i,false);
-      dict[sim_cell.elements_info[i]->vasp_symbol_soft] = std::make_pair(i,true);
+      dict[sim_cell.elements_info[i]->vasp_symbol_hard] = std::make_pair(i,true);
+      dict[sim_cell.elements_info[i]->vasp_symbol_soft] = std::make_pair(i,false);
     }
 
     std::vector<std::string> vasp_symbols;
@@ -353,8 +353,14 @@ namespace lvx {
         if (using_Direct) {
           vec3_dimless v = read_vec3(line, dimensionless);
           pos_vec.push_back(transform(lattice_constant, a1, a2, a3, v));
-        } else
-          pos_vec.push_back(read_vec3(line, angstrom));
+        } else {
+          vec3_angstrom v = read_vec3(line, angstrom);
+          // v[0] = v[0] * lattice_constant.value();
+          // v[1] = v[1] * lattice_constant.value();
+          // v[2] = v[2] * lattice_constant.value();
+
+          pos_vec.push_back(v);
+        }
       } else
         break; // If we hit a blank line
     }
@@ -370,7 +376,6 @@ namespace lvx {
     
     //sim_cell.particles.clear();
 
-    bool is_empty = sim_cell.particles.empty();
     int k = 0;
     for (int i = 0; i < pos_vec.size(); i++) {
       if (i >= indices[k]) {
@@ -586,10 +591,4 @@ namespace lvx {
     return true;
   }
 
-  
-    // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
-    //                      const vec3_dimless& dir,
-    //                      const quantity<electron_volt_unit>& energy) {
-
-    // }
 }

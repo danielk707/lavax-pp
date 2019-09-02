@@ -36,7 +36,7 @@
 
 \title{{\Huge \bfseries Lavax manual}}
 \author{Daniel Karlsson (danielk5@kth.se)}
-\date{June 26, 2019}
+\date{September 2, 2019}
 
 \begin{document}
 
@@ -140,6 +140,7 @@ LAMMPS_PAIR_STYLE     = eam/fs
 
 LAMMPS_HIDE_OUTPUT = false
 VASP_HIDE_OUTPUT   = false
+REFORMAT_XDATCAR   = true
 
 POTENTIAL_DEPARTURE_DISTANCE = 2.0
 
@@ -181,6 +182,17 @@ The possible flags in lavax.conf are described in Table~\ref{tab:1}.
   \texttt{VASP\_POTENTIAL\_FILE\_*\_\#} & POTCAR file for the hard/soft potential for element \#. These will be concatenated in proper order to POTCAR by lavax.\\
   \texttt{VASP\_POTENTIAL\_SYMBOL\_*\_\#} & The symbols for the atomic elements should not be more than two characters long due to a bug in VASP, and must be different for the hard and soft potential for the same element. \\
   \texttt{LAMMPS\_ATOMIC\_SYMBOL\_\#} & Usually the same as \texttt{ATOMIC\_SYMBOL\_\#}, the element symbol.\\
+  \texttt{REFORMAT\_XDATCAR} & lavax will reformat XDATCAR to contain atomic symbols even if the number of atoms of that symbol are zero, i.e. the lines
+\begin{verbatim}
+W F
+16 4
+\end{verbatim}
+will become
+\begin{verbatim}
+W Ws F Fp
+16 0 4 0
+\end{verbatim}
+This is very useful for Ovito visualizations.\\
   \hline
 \end{tabular}
 \end{table}
@@ -212,6 +224,8 @@ Cartesian
 \end{verbatim}
 
 \textit{Note: } The symbols for the atomic elements (\texttt{VASP\_POTENTIAL\_SYMBOL\_*}) should not be more than two characters long due to a bug in VASP.
+\newline \\
+The lattice vectors must be of the form $\bar{a}_1 = (c_1,0,0)$, $\bar{a}_2 = (0,c_2,0)$, $\bar{a}_3 = (0,0,c_3)$.
 
 \newpage
 \section{Determining \texttt{POTENTIAL\_DEPARTURE\_DISTANCE}}

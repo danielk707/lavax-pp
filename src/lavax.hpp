@@ -11,8 +11,6 @@
 #include <numeric>
 #include <tuple>
 #include <array>
-// #include <armadillo>
-// #include <Eigen/Core>
 #include "small_scale_units.hpp"
 
 template <typename T>
@@ -23,27 +21,11 @@ std::ostream& operator<<(std::ostream &strm,
 }
 
 namespace lvx {
-  // using namespace arma;
-  // using namespace units;
   using namespace boost::units;
-
-  // using vec3_length   = quantity<si::length,   blitz::Array<double,1>>;
-  // using vec3_velocity = quantity<si::velocity, blitz::Array<double,1>>;
-
-  // using vec3_angstrom = blitz::TinyVector<quantity<angstrom_unit>,     3>;
-  // using vec3_velocity = blitz::TinyVector<quantity<velocity_unit>,     3>;
-  // using vec3_dimless  = blitz::TinyVector<quantity<si::dimensionless>, 3>;
 
   using vec3_angstrom = std::array<quantity<angstrom_unit>,3>;
   using vec3_velocity = std::array<quantity<velocity_unit>,3>;
   using vec3_dimless  = std::array<quantity<si::dimensionless>,3>; 
-
-  // template <typename T>
-  // std::ostream& operator<<(std::ostream &strm,
-  //                          const blitz::TinyVector<quantity<T>,3>& a) {
-  //   return strm << std::fixed << std::setprecision(8)
-  //               << a(0).value() << " " << a(1).value() << " " << a(2).value();
-  // }
 
   // ------------------------------------------------------------
   class Particle {
@@ -53,9 +35,8 @@ namespace lvx {
     vec3_angstrom pos;
     vec3_velocity vel;
     
-    Particle(vec3_angstrom pos, vec3_velocity vel) : pos(pos), vel(vel) {
-      // this->vel = vel;
-    }
+    Particle(vec3_angstrom pos, vec3_velocity vel) : pos(pos), vel(vel) {}
+    
     Particle(unsigned int type,
              vec3_angstrom pos,
              vec3_velocity vel) : type(type), pos(pos), vel(vel) {}
@@ -90,28 +71,7 @@ namespace lvx {
     std::vector<std::tuple<std::string,int,bool> > vasp_symbol_count_helper;
     std::vector<int> poscar_part_order;
     std::set<int>    lammps_selected_idx;
-    // int index_by_vasp_good(std::string) {
-      
-    // }
   };
-
-  // template<typename T, typename U>
-  // blitz::TinyVector<quantity<typename U::unit_type>,3>
-  // read_vec3(T&& strm, U unit) {
-  //   // std::stringstream strm(str);
-  //   double x, y, z;
-  //   strm >> x;
-  //   strm >> y;
-  //   strm >> z;
-
-  //   blitz::TinyVector<quantity<typename U::unit_type>,3> rtn;
-  //   rtn = x * unit,
-  //         y * unit,
-  //         z * unit;
-    
-  //   return
-  //     rtn;
-  // }
 
   template<typename T, typename U>
   std::array<quantity<typename U::unit_type>,3>
@@ -130,12 +90,6 @@ namespace lvx {
     return rtn;
   }
 
-  // template<typename U>
-  // blitz::TinyVector<quantity<typename U::unit_type>,3>
-  // read_vec3(std::string& str, U unit) {
-  //   return read_vec3(std::stringstream(str), unit);
-  // }
-
   template<typename U>
   std::array<quantity<typename U::unit_type>,3>
   read_vec3(std::string& str, U unit) {
@@ -143,12 +97,6 @@ namespace lvx {
   }
   
   // Ugly, but works for our purposes:
-  // template<typename U>
-  // quantity<U>
-  // norm(blitz::TinyVector<quantity<U>,3> v) {
-  //   return sqrt((v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).value()) * (typename U::unit());
-  // }
-
   template<typename U>
   quantity<U>
   norm(std::array<quantity<U>,3> v) {
@@ -205,10 +153,6 @@ namespace lvx {
 
   bool backup_files(const std::vector<std::string>& file_names,
                     int unique_idx, int lavax_iterations);
-  
-  // vec3_velocity PKAvel(const quantity<atomic_mass_unit>& mass,
-  //                      const vec3_dimless& dir,
-  //                      const quantity<electron_volt_unit>& energy);
 
 }
 
