@@ -20,8 +20,7 @@ namespace lvx {
       copy_file(path(DATADIR "/predictor.in"), path("./predictor.in"), copy_option::overwrite_if_exists); // current_path()
     }
 
-    std::cout << "Remember to add a LAMMPS potential file as specified in 'predictor.in' "
-              << "and a properly concatenated POTCAR file for VASP" << "\n";
+    std::cout << "Remember to add a LAMMPS potential file as specified in 'predictor.in'\n";
   }
 
   // ------------------------------------------------------------

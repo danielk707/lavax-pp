@@ -92,9 +92,9 @@ namespace lvx {
     int MAX_POTENTIAL_SUBSTITUTIONS;
     int MAX_VASP_NSW;
 
-    bool LAMMPS_HIDE_OUTPUT;
-    bool VASP_HIDE_OUTPUT;
-    bool REFORMAT_XDATCAR;
+    bool LAMMPS_HIDE_OUTPUT = false;
+    bool VASP_HIDE_OUTPUT   = false;
+    bool REFORMAT_XDATCAR   = false;
   };
   
 }
@@ -115,7 +115,24 @@ int main(int argc, char *argv[]) {
   
   auto conf_data = lvx::parse_config_file(f);
 
+  std::set<std::string> necessary_fields = {"VASP_COMMAND",
+                                            "LAMMPS_COMMAND",
+                                            "INIT_POSCAR",
+                                            "LAVAX_ITERATIONS",
+                                            "LAMMPS_POTENTIAL_FILE",
+                                            "LAMMPS_PAIR_STYLE",
+                                            "POTENTIAL_DEPARTURE_DISTANCE",
+                                            "MAX_POTENTIAL_SUBSTITUTIONS",
+                                            "MAX_VASP_NSW"};
   lvx::config_data conf;
+
+  for (std::string s : necessary_fields) {
+    if (conf_data.find(s) == conf_data.end()) {
+      std::cerr << "error: lavax.conf must contain field '" << s << "'" << std::endl;
+      return -1;
+    }
+  }
+
   conf.VASP_COMMAND                 = conf_data["VASP_COMMAND"];
   conf.LAMMPS_COMMAND               = conf_data["LAMMPS_COMMAND"];
   conf.INIT_POSCAR                  = conf_data["INIT_POSCAR"];
@@ -123,47 +140,60 @@ int main(int argc, char *argv[]) {
   conf.LAMMPS_POTENTIAL_FILE        = conf_data["LAMMPS_POTENTIAL_FILE"];
   conf.LAMMPS_PAIR_STYLE            = conf_data["LAMMPS_PAIR_STYLE"];
   conf.POTENTIAL_DEPARTURE_DISTANCE = std::stod(conf_data["POTENTIAL_DEPARTURE_DISTANCE"]) * angstrom;
-  std::istringstream is(conf_data["USE_ADAPTIVE_POTIM"]);
-  is >> std::boolalpha >> conf.USE_ADAPTIVE_POTIM;
-  conf.MAX_DISTANCE                 = std::stod(conf_data["MAX_DISTANCE"]) * angstrom;
-  conf.MAX_POTIM                    = std::stod(conf_data["MAX_POTIM"]) * femtosecond;
   conf.MAX_POTENTIAL_SUBSTITUTIONS  = std::stoi(conf_data["MAX_POTENTIAL_SUBSTITUTIONS"]);
   conf.MAX_VASP_NSW                 = std::stoi(conf_data["MAX_VASP_NSW"]);
 
-  is.str(conf_data["LAMMPS_HIDE_OUTPUT"]);
-  is >> std::boolalpha >> conf.LAMMPS_HIDE_OUTPUT;
+  std::istringstream is;
+  if (conf_data.find("USE_ADAPTIVE_POTIM") != conf_data.end()) {
+    is.str(conf_data["USE_ADAPTIVE_POTIM"]);
+    is >> std::boolalpha >> conf.USE_ADAPTIVE_POTIM;
+    conf.MAX_DISTANCE                 = std::stod(conf_data["MAX_DISTANCE"]) * angstrom;
+    conf.MAX_POTIM                    = std::stod(conf_data["MAX_POTIM"]) * femtosecond;
+  }
 
-  is.str(conf_data["VASP_HIDE_OUTPUT"]);
-  is >> std::boolalpha >> conf.VASP_HIDE_OUTPUT;
-
-  is.str(conf_data["REFORMAT_XDATCAR"]);
-  is >> std::boolalpha >> conf.REFORMAT_XDATCAR;
+  if (conf_data.find("LAMMPS_HIDE_OUTPUT") != conf_data.end()) {
+    is.str(conf_data["LAMMPS_HIDE_OUTPUT"]);
+    is >> std::boolalpha >> conf.LAMMPS_HIDE_OUTPUT;
+  }
+  if (conf_data.find("VASP_HIDE_OUTPUT") != conf_data.end()) {
+    is.str(conf_data["VASP_HIDE_OUTPUT"]);
+    is >> std::boolalpha >> conf.VASP_HIDE_OUTPUT;
+  }
+  if (conf_data.find("REFORMAT_XDATCAR") != conf_data.end()) {
+    is.str(conf_data["REFORMAT_XDATCAR"]);
+    is >> std::boolalpha >> conf.REFORMAT_XDATCAR;
+  }
   
   if (!lvx::init_check2(conf.INIT_POSCAR)) {
     return false;
   }
-    
+  
   int NSW;
   quantity<femtosecond_unit> POTIM;
 
   if (!lvx::parse_INCAR(NSW, POTIM)) {
     std::cerr << "Failed to parse INCAR!" << "\n";
-    std::cerr << "... must contain fields NSW and POTIM" << std::endl;
+    std::cerr << "... must contain fields 'NSW' and 'POTIM'" << std::endl;
   }
   std::cout << "NSW = " << NSW << ", POTIM = " << POTIM << std::endl;
+  
+  std::vector<std::shared_ptr<lvx::atomic_element_info> > atomic_catalog;
+  try {
+    atomic_catalog = lvx::create_atomic_catalog(conf_data);
+  } catch (const std::exception& ex) {
+    std::cerr << "error: " << ex.what() << std::endl;
+    return -1;
+  }
 
   std::string lammps_atomic_symbols;
-  for (int i = 0; conf_data.find(std::string("LAMMPS_ATOMIC_SYMBOL_") + std::to_string(i))
-         != conf_data.end(); ++i) {
-    lammps_atomic_symbols += conf_data[std::string("LAMMPS_ATOMIC_SYMBOL_") + std::to_string(i)] + " ";
+  for (auto e : atomic_catalog) {
+    lammps_atomic_symbols += e->lammps_symbol + " ";
   }
 
   lvx::update_LAMMPS_script(conf.LAMMPS_POTENTIAL_FILE,
                             lammps_atomic_symbols,
                             conf_data["LAMMPS_PAIR_STYLE"],
                             conf.MAX_VASP_NSW, POTIM);
-
-  auto atomic_catalog = lvx::create_atomic_catalog(conf_data);
   
   quantity<angstrom_unit> latt_const;
   lvx::vec3_dimless       a1, a2, a3;

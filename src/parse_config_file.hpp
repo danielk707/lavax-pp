@@ -14,7 +14,7 @@ namespace lvx {
     
     while (std::getline(conf_file, line)) {
       
-      std::regex rgx("\\s*(\\S*)\\s*=\\s*([^\\s#][^#]*[^\\s#]?)\\s*#?.*");
+      std::regex rgx("^\\s*([^\\s#]+)\\s*=\\s*([^\\s#][^#]*\\b)\\s*#?.*");
       std::smatch matches;
       
       if (std::regex_search(line, matches, rgx)) {

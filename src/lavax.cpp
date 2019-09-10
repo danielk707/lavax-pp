@@ -452,7 +452,8 @@ namespace lvx {
         return std::stod(matches[1]) * u;
       }
     }
-    return 0.0 * u;
+    throw std::runtime_error("could not find atomic mass in POTCAR.");
+    // return 0.0 * u;
   }
 
   bool parse_INCAR(int& NSW, quantity<femtosecond_unit>& POTIM) {
@@ -524,6 +525,19 @@ namespace lvx {
 
     for (int i = 0; conf_data.find(std::string("ATOMIC_SYMBOL_") + std::to_string(i))
            != conf_data.end(); ++i) {
+
+      std::set<std::string> necessary_fields =
+        {std::string("VASP_POTENTIAL_SYMBOL_HARD_") + std::to_string(i),
+         std::string("VASP_POTENTIAL_SYMBOL_SOFT_") + std::to_string(i),
+         std::string("VASP_POTENTIAL_FILE_HARD_")   + std::to_string(i),
+         std::string("VASP_POTENTIAL_FILE_SOFT_")   + std::to_string(i),
+         std::string("LAMMPS_ATOMIC_SYMBOL_"        + std::to_string(i))};
+
+      for (std::string s : necessary_fields) {
+        if (conf_data.find(s) == conf_data.end()) {
+          throw std::runtime_error(std::string("lavax.conf must contain field '") + s + "'");
+        }
+      }
     
       std::shared_ptr<lvx::atomic_element_info> aep(new lvx::atomic_element_info);
 
@@ -532,6 +546,7 @@ namespace lvx {
       aep->atom_type        = i+1;
       aep->vasp_symbol_hard = conf_data[std::string("VASP_POTENTIAL_SYMBOL_HARD_") + std::to_string(i)];
       aep->vasp_symbol_soft = conf_data[std::string("VASP_POTENTIAL_SYMBOL_SOFT_") + std::to_string(i)];
+      aep->lammps_symbol    = conf_data[std::string("LAMMPS_ATOMIC_SYMBOL_")       + std::to_string(i)];
     
       std::ifstream f(conf_data[std::string("VASP_POTENTIAL_FILE_HARD_")  + std::to_string(i)]);
       aep->vasp_potential_file_hard.assign((std::istreambuf_iterator<char>(f)),

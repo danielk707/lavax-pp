@@ -51,6 +51,7 @@ namespace lvx {
     int         atom_type;
     std::string vasp_symbol_hard;
     std::string vasp_symbol_soft;
+    std::string lammps_symbol;
     std::string vasp_potential_file_hard;
     std::string vasp_potential_file_soft;
     quantity<atomic_mass_unit> mass;
